@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v5"
@@ -63,7 +64,10 @@ func octopusCostHandler(fetcher meterFetcher, loc *time.Location) echo.HandlerFu
 		// the (personal) consumption-derived response.
 		c.Response().Header().Set("Cache-Control", "no-store")
 
-		apiKey := c.Request().Header.Get(octopusKeyHeader)
+		// Trim whitespace: a key pasted with a trailing newline or space would
+		// otherwise corrupt the upstream Basic auth and surface as a
+		// confusing 401 from Octopus.
+		apiKey := strings.TrimSpace(c.Request().Header.Get(octopusKeyHeader))
 		if apiKey == "" {
 			return jsonError(c, http.StatusUnauthorized, codeMissingKey,
 				fmt.Sprintf("provide your Octopus API key in the %s header", octopusKeyHeader))

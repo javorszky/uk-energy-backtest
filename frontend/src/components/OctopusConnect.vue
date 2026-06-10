@@ -40,20 +40,26 @@
     }
   })
 
+  // Keys arrive via copy-paste; stray whitespace would corrupt the Basic
+  // auth upstream and read back as a baffling 401.
+  function cleanKey(): string {
+    return apiKey.value.trim()
+  }
+
   function onRememberToggled(): void {
-    if (rememberKey.value && apiKey.value) {
-      localStorage.setItem(KEY_STORAGE, apiKey.value)
+    if (rememberKey.value && cleanKey()) {
+      localStorage.setItem(KEY_STORAGE, cleanKey())
     } else {
       localStorage.removeItem(KEY_STORAGE)
     }
   }
 
   function submit(): void {
-    if (rememberKey.value && apiKey.value) {
-      localStorage.setItem(KEY_STORAGE, apiKey.value)
+    if (rememberKey.value && cleanKey()) {
+      localStorage.setItem(KEY_STORAGE, cleanKey())
     }
     emit('submit', {
-      apiKey: apiKey.value,
+      apiKey: cleanKey(),
       account: account.value.trim(),
       periodFrom: periodFrom.value,
       periodTo: periodTo.value,
