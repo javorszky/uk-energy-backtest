@@ -15,6 +15,7 @@
         gasUnit: 'kwh' | 'm3'
       },
     ]
+    prefill: [details: { apiKey: string; account: string }]
   }>()
 
   defineProps<{ busy: boolean }>()
@@ -52,6 +53,13 @@
     } else {
       localStorage.removeItem(KEY_STORAGE)
     }
+  }
+
+  function prefill(): void {
+    if (rememberKey.value && cleanKey()) {
+      localStorage.setItem(KEY_STORAGE, cleanKey())
+    }
+    emit('prefill', { apiKey: cleanKey(), account: account.value.trim() })
   }
 
   function submit(): void {
@@ -161,12 +169,25 @@
       </label>
     </div>
 
-    <button
-      type="submit"
-      :disabled="busy"
-      class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-    >
-      {{ busy ? 'Fetching from Octopus…' : 'Fetch usage and calculate' }}
-    </button>
+    <div class="flex flex-wrap items-center gap-3">
+      <button
+        type="submit"
+        :disabled="busy"
+        class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {{ busy ? 'Fetching from Octopus…' : 'Fetch usage and calculate' }}
+      </button>
+      <button
+        type="button"
+        :disabled="busy || !apiKey.trim() || !account.trim()"
+        class="rounded-lg border border-indigo-300 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-40"
+        @click="prefill"
+      >
+        Prefill my current tariff
+      </button>
+      <span class="text-xs text-gray-400">
+        Adds your live Octopus rates as an editable tariff below.
+      </span>
+    </div>
   </form>
 </template>

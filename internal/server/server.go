@@ -85,7 +85,9 @@ func New(cfg config.Config, gitSHA, buildTime string) *Server {
 	v1.GET("/health", healthHandler)
 	v1.GET("/status", statusHandler(gitSHA, buildTime))
 	v1.POST("/cost", costHandler)
-	v1.POST("/octopus/cost", octopusCostHandler(octopus.NewClient(octopusRequestTimeout), london))
+	octoClient := octopus.NewClient(octopusRequestTimeout)
+	v1.POST("/octopus/cost", octopusCostHandler(octoClient, london))
+	v1.POST("/octopus/tariff", octopusTariffHandler(octoClient, london))
 
 	registerStatic(e)
 

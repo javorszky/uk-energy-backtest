@@ -2,6 +2,7 @@ import type {
   CostResponse,
   OctopusCostRequest,
   OctopusCostResponse,
+  OctopusTariffResponse,
   Profile,
   Tariff,
 } from '../lib/types'
@@ -86,6 +87,22 @@ export function postOctopusCost(
     headers: { 'X-Octopus-Key': apiKey },
     timeoutMs: OCTOPUS_TIMEOUT_MS,
   })
+}
+
+/**
+ * Fetch the account's current tariff (import, export, gas) as a prefilled
+ * tariff in the app's model, built from the rates Octopus publishes for the
+ * account's live agreements.
+ */
+export function postOctopusTariff(account: string, apiKey: string): Promise<OctopusTariffResponse> {
+  return postJson<OctopusTariffResponse>(
+    '/api/v1/octopus/tariff',
+    { account },
+    {
+      headers: { 'X-Octopus-Key': apiKey },
+      timeoutMs: OCTOPUS_TIMEOUT_MS,
+    },
+  )
 }
 
 export interface HealthResponse {

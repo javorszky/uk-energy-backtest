@@ -85,6 +85,14 @@ type MeterPoints struct {
 	GasSerial    string
 }
 
+// agreement is one tariff contract on a meter point. ValidTo is nil for the
+// open-ended (current) agreement.
+type agreement struct {
+	ValidFrom  time.Time  `json:"valid_from"`
+	ValidTo    *time.Time `json:"valid_to"`
+	TariffCode string     `json:"tariff_code"`
+}
+
 // accountResponse mirrors the subset of GET /accounts/{number}/ we need.
 type accountResponse struct {
 	Properties []struct {
@@ -93,13 +101,15 @@ type accountResponse struct {
 			Meters []struct {
 				SerialNumber string `json:"serial_number"`
 			} `json:"meters"`
-			IsExport bool `json:"is_export"`
+			Agreements []agreement `json:"agreements"`
+			IsExport   bool        `json:"is_export"`
 		} `json:"electricity_meter_points"`
 		GasMeterPoints []struct {
 			MPRN   string `json:"mprn"`
 			Meters []struct {
 				SerialNumber string `json:"serial_number"`
 			} `json:"meters"`
+			Agreements []agreement `json:"agreements"`
 		} `json:"gas_meter_points"`
 	} `json:"properties"`
 }

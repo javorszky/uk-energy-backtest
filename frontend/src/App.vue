@@ -5,7 +5,7 @@
   // connection details ever reach the API layer — raw readings do not.
   import { computed, reactive, ref, watch } from 'vue'
 
-  import { ApiError, postCost, postOctopusCost } from './api/client'
+  import { ApiError, postCost, postOctopusCost, postOctopusTariff } from './api/client'
   import { buildProfile } from './lib/profile'
   import { loadTariffs, presetTariffs, saveTariffs } from './lib/tariffStore'
   import { LONDON_TZ } from './lib/timezone'
@@ -111,6 +111,25 @@
     }
   }
 
+  async function prefillTariffFromOctopus(details: {
+    apiKey: string
+    account: string
+  }): Promise<void> {
+    errorMessage.value = ''
+    busy.value = true
+    try {
+      const resp = await postOctopusTariff(details.account, details.apiKey)
+      tariffs.value.push(resp.tariff)
+      tariffsVersion.value++
+      dataWarnings.value = resp.warnings
+    } catch (err) {
+      errorMessage.value =
+        err instanceof ApiError ? err.message : 'Tariff prefill failed — is the backend running?'
+    } finally {
+      busy.value = false
+    }
+  }
+
   async function calculateFromOctopus(details: {
     apiKey: string
     account: string
@@ -200,7 +219,11 @@
             Or connect your Octopus account
           </summary>
           <div class="mt-4">
-            <OctopusConnect :busy="busy" @submit="calculateFromOctopus" />
+            <OctopusConnect
+              :busy="busy"
+              @submit="calculateFromOctopus"
+              @prefill="prefillTariffFromOctopus"
+            />
           </div>
         </details>
 

@@ -59,6 +59,8 @@ Env vars: `PORT` (default `8080`), `DOMAIN` (default `localhost`), `FRONTEND_ORI
 | `Electricity`, `Gas`, `Tariff` | structs | Tariff model, VAT-inclusive pence; `Tariff.Gas` optional |
 | `Result` | `struct{ Name string; ImportPence, ExportCreditP, GasPence, StandingPence, NetPence float64; ImportRates, ExportRates [48]float64 }` | Costed outcome; rate arrays feed the chart overlay |
 | `Cost` | `func Cost(p *Profile, t Tariff) (Result, error)` | Rules 2/4/6/7: band match, sums, standing, net = import+gas+standing−export |
+| `BandsFromRates` | `func BandsFromRates(rates *[48]float64) (def float64, bands []Band)` | `bands.go` — inverse of rate resolution: modal default + runs as bands (wrap-aware); for tariff prefill |
+| `DistinctRates`, `MeanRate` | helpers over `*[48]float64` | `bands.go` — Agile detection and flat-average fallback |
 | `Reading` | `struct{ IntervalStart time.Time; Consumption float64 }` | One metered half-hour |
 | `BuildProfile` | `func BuildProfile(imp, exp, gas []Reading, gasIsM3 bool, cv float64, loc *time.Location) (Profile, error)` | Rules 1/3/5/6: local-time bucketing, per-slot half-even rounding, m³ conversion, supplied-day count |
 | `RoundHalfEven2dp` | `func RoundHalfEven2dp(v float64) float64` | Banker's rounding to 0.01 kWh (rule 3) |
@@ -83,6 +85,17 @@ The TS twin lives in `frontend/src/lib/profile.ts`; `testdata/shared/profile_fix
 
 Security invariants: path segments regex-validated (`^[A-Za-z0-9-]+$`), Basic auth with key as username/empty password, key never in URLs or error strings.
 
+Tariff discovery (`tariff.go`):
+
+| Symbol | Signature | Purpose |
+|--------|-----------|---------|
+| `TariffCodes` | `struct{ Import, Export, Gas string }` | Current tariff code per stream |
+| `(*Client).CurrentTariffCodes` | `func (..., apiKey, account string, now time.Time) (TariffCodes, error)` | Live agreement per meter point from the accounts payload |
+| `ProductCode` | `func ProductCode(tariffCode string) (string, error)` | `E-1R-VAR-19-04-12-N` → `VAR-19-04-12` |
+| `(*Client).CurrentStandingCharge` | `func (..., tariffCode string, gas bool, now) (float64, error)` | Standing charge in force now (direct-debit preferred) |
+| `(*Client).CurrentGasUnitRate` | `func (..., tariffCode string, now) (float64, error)` | Flat gas rate in force now |
+| `(*Client).UnitRateBuckets` | `func (..., tariffCode string, now, loc) (*[48]float64, error)` | Last-26h sweep of unit rates into local buckets (band reconstruction) |
+
 ---
 
 ### `internal/server` — HTTP server
@@ -103,6 +116,7 @@ Security invariants: path segments regex-validated (`^[A-Za-z0-9-]+$`), Basic au
 | `profilePayload` | wire struct with slice buckets | `cost.go` — rejects non-48-bucket arrays (fixed arrays would silently truncate) |
 | `octopusCostHandler` | `func octopusCostHandler(fetcher meterFetcher, loc *time.Location) echo.HandlerFunc` | `octopus.go` — `POST /api/v1/octopus/cost`: fetch→aggregate→cost→discard; key via `X-Octopus-Key` header only; `Cache-Control: no-store` |
 | `meterFetcher` | interface over the octopus client | `octopus.go` — lets handler tests stub the upstream |
+| `octopusTariffHandler` | `func octopusTariffHandler(fetcher tariffFetcher, loc *time.Location) echo.HandlerFunc` | `octopus_tariff.go` — `POST /api/v1/octopus/tariff`: prefill a tariff from the account's current agreements; Agile collapses to average + warning |
 
 Note: `otelecho` (the contrib package) targets Echo v4 and cannot be used here. `otelMiddleware` is the Echo v5 replacement.
 
@@ -149,6 +163,7 @@ All `fetch` calls live here. No raw `fetch` elsewhere.
 | `ApiError` | `class extends Error { status: number; code: string }` | Carries the server error envelope |
 | `postCost` | `function postCost(profile: Profile, tariffs: Tariff[]): Promise<CostResponse>` | `POST /api/v1/cost` — deliberately only accepts a Profile, never raw rows |
 | `postOctopusCost` | `function postOctopusCost(req: OctopusCostRequest, apiKey: string): Promise<OctopusCostResponse>` | `POST /api/v1/octopus/cost`; key in `X-Octopus-Key` header; 95 s timeout |
+| `postOctopusTariff` | `function postOctopusTariff(account: string, apiKey: string): Promise<OctopusTariffResponse>` | `POST /api/v1/octopus/tariff` — prefill tariff from current agreements |
 
 **To add an API call:** add a function here, typed against the OpenAPI contract.
 
@@ -176,7 +191,7 @@ Tests in `lib/__tests__/`; `fixture.spec.ts` consumes `testdata/shared/profile_f
 | Component | Purpose |
 |-----------|---------|
 | `CsvImport.vue` | Three-stream upload, preset/column mapping, tz + gas-unit selectors |
-| `OctopusConnect.vue` | Key/account/period form; key memory-only by default, opt-in persistence behind a warning |
+| `OctopusConnect.vue` | Key/account/period form; key memory-only by default, opt-in persistence behind a warning; "Prefill my current tariff" button (emits `prefill`) |
 | `TariffEditor.vue` | One tariff; local copy + `update:modelValue` (parent re-keys on list restructure); band rows constrained to :00/:30 |
 | `CostComparisonChart.vue` | Stacked bars, export as negative credit, net labelled |
 | `LoadProfileChart.vue` | 48-bucket profile with selected tariff's rate overlay |

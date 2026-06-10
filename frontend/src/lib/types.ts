@@ -75,6 +75,19 @@ export interface OctopusCostResponse {
   results: CostResult[]
 }
 
+/** Response of POST /api/v1/octopus/tariff — a prefilled tariff from the
+ * account's current agreements, plus provenance and any mapping warnings
+ * (e.g. Agile collapsing to a flat average). */
+export interface OctopusTariffResponse {
+  tariff: Tariff
+  codes: {
+    import: string
+    export?: string
+    gas?: string
+  }
+  warnings: string[]
+}
+
 /** One metered half-hour, after parsing: a UTC instant plus a kWh (or m³) value. */
 export interface RawReading {
   /** UTC epoch milliseconds of the interval start. */

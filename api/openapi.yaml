@@ -165,6 +165,78 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /octopus/tariff:
+    post:
+      operationId: postOctopusTariff
+      summary: Prefill a tariff from the account's current Octopus agreements
+      description: >
+        Looks up the account's live import/export/gas tariff agreements,
+        pulls the published rates for each (standing charges and unit rates),
+        and returns a prefilled Tariff in this app's model. Time-of-use
+        tariffs are reconstructed as bands from the last 24h of published
+        rates; dynamic tariffs (Agile) collapse to a flat 24h average with a
+        warning. Stateless; the key is discarded with the request.
+      parameters:
+        - name: X-Octopus-Key
+          in: header
+          required: true
+          description: Octopus API key, used per-request and discarded
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account]
+              properties:
+                account:
+                  type: string
+                  example: A-1234ABCD
+      responses:
+        '200':
+          description: The prefilled tariff, its source tariff codes, and warnings
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tariff, codes, warnings]
+                properties:
+                  tariff:
+                    $ref: '#/components/schemas/Tariff'
+                  codes:
+                    type: object
+                    required: [import]
+                    properties:
+                      import:
+                        type: string
+                        example: E-1R-FLUX-IMPORT-23-02-14-C
+                      export:
+                        type: string
+                      gas:
+                        type: string
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Missing X-Octopus-Key header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream Octopus API call failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   responses:
     BadRequest:
