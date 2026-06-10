@@ -7,6 +7,11 @@ RUN npm ci
 
 FROM frontend-deps AS frontend-builder
 COPY frontend/ ./
+# The build script runs vue-tsc over the whole project, including the test
+# spec that imports the shared cross-language fixture from the repo root —
+# it must exist at the same relative path (../../../../testdata from the
+# spec, i.e. /testdata next to /frontend).
+COPY testdata/ /testdata/
 RUN npm run build
 
 # ── Go binary ─────────────────────────────────────────────────────────────────
