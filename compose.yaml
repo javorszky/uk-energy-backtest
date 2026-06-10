@@ -1,0 +1,60 @@
+# Local development environment.
+#
+#   docker compose up
+#
+# Backend (Go, plain `go run`) on http://localhost:8080, frontend (Vite dev
+# server with HMR) on http://localhost:5173. The Vite proxy forwards /api to
+# the backend service, so open http://localhost:5173 and everything works.
+#
+# To test the production-shaped single binary (embedded SPA, scratch image):
+#
+#   docker compose --profile prod up app --build
+#
+# and open http://localhost:8090.
+
+services:
+  backend:
+    image: golang:1.26
+    working_dir: /app
+    command: go run ./cmd/server
+    volumes:
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      # Stdout OTel exporters in dev; no collector needed.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ""
+      GOFLAGS: -buildvcs=false
+    ports:
+      - "8080:8080"
+
+  frontend:
+    image: node:24
+    working_dir: /app/frontend
+    command: sh -c "npm ci && npm run dev -- --host"
+    volumes:
+      - .:/app
+      # Keep container node_modules separate from any host install (native
+      # binaries differ between macOS and Linux).
+      - node-modules:/app/frontend/node_modules
+    environment:
+      VITE_PROXY_TARGET: http://backend:8080
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  # The embedded production image, built from build/Dockerfile. Opt-in via
+  # the prod profile; not part of the default dev loop.
+  app:
+    profiles: [prod]
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    ports:
+      - "8090:8080"
+
+volumes:
+  go-mod-cache:
+  go-build-cache:
+  node-modules:

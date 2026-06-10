@@ -1,6 +1,10 @@
-# go-vue-template
+# uk-energy-backtest
 
-A GitHub template for production-ready full-stack applications: Go backend, Vue 3 frontend, strict tooling, and a clear path from single-binary to fully decoupled deployment. It's set up to be developed on a mac locally.
+A web app that backtests UK energy tariffs against your real half-hourly usage — import, export **and** gas — so a solar/battery/EV household can see what a competitor quote *would have* cost, export earnings included.
+
+**Privacy by architecture:** the server stores nothing. CSV files are parsed in the browser and collapsed to a 48-bucket daily load profile before anything is sent; the Octopus path proxies the API server-side and discards the raw data and your API key as soon as the response is written. There are no accounts and no database.
+
+Built on the [go-vue-project-base](https://github.com/javorszky/go-vue-project-base) template: Go 1.26 + Echo backend, Vue 3 + Tailwind v4 frontend, embedded single-binary deployment.
 
 ---
 ## Badges
@@ -65,7 +69,19 @@ If you do not want Codecov, remove the two `codecov/codecov-action` steps from `
 
 ### 6. Start developing
 
-In two terminals:
+**With Docker Compose (recommended):**
+
+```bash
+docker compose up
+```
+
+Backend on `http://localhost:8080`, frontend with HMR on `http://localhost:5173` — open the latter. To try the production-shaped image (embedded SPA, scratch container):
+
+```bash
+docker compose --profile prod up app --build   # http://localhost:8090
+```
+
+**Bare metal**, in two terminals:
 
 ```bash
 # Terminal 1 — Go backend
@@ -75,7 +91,18 @@ go run ./cmd/server
 cd frontend && npm run dev
 ```
 
-The Vite dev server proxies `/api` requests to `http://localhost:8080`, so the frontend and backend talk to each other without any CORS configuration during development.
+The Vite dev server proxies `/api` requests to the backend (`http://localhost:8080` by default, `VITE_PROXY_TARGET` to override), so no CORS configuration is needed during development.
+
+### 7. Deploy to Fly.io
+
+The app deploys as a single stateless machine in `lhr` (see `fly.toml`), scaling to zero when idle:
+
+```bash
+fly launch --no-deploy   # first time only — creates the app
+fly deploy
+```
+
+Health checks hit `GET /api/v1/health`. With no `OTEL_EXPORTER_OTLP_ENDPOINT` set, telemetry goes to stdout and shows up in `fly logs`.
 
 ---
 

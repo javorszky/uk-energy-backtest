@@ -11,7 +11,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:8080',
+      // Overridable so docker compose can point at the backend service name
+      // while bare-metal dev keeps localhost.
+      '/api': process.env.VITE_PROXY_TARGET ?? 'http://localhost:8080',
     },
   },
   test: {
