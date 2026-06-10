@@ -1,0 +1,92 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - cyclop       # cyclomatic complexity per function
+    - exhaustive   # exhaustive switch/map on enum types
+    - gocritic     # 100+ diagnostic, style, and performance checks
+    - gosec        # security: hardcoded secrets, unsafe calls, etc.
+    - misspell     # spelling in comments and string literals
+    - nilerr       # catches `if err == nil { return err }`
+    - nilnil       # disallows returning nil, nil from error-returning funcs
+    - revive       # drop-in golint replacement with more rules
+    - unconvert    # unnecessary type conversions
+    - unparam      # unused function parameters
+    - wrapcheck    # errors from external packages must be wrapped
+    - forbidigo    # forbids direct os.Getenv / os.Setenv outside the config package
+    - mnd          # magic number detector
+    - goconst      # repeated string literals that should be constants
+
+  exclusions:
+    paths:
+      - vendor
+      - frontend
+    presets:
+      - std-error-handling       # stdlib funcs that commonly return ignored errors
+      - common-false-positives   # well-known false-positive patterns
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec      # tests legitimately use hardcoded values and weak crypto
+          - wrapcheck  # test errors need not be wrapped
+          - nilerr     # less relevant in test helpers
+          - forbidigo  # tests may set env vars to exercise config loading
+
+  settings:
+    cyclop:
+      max-complexity: 10
+
+    errcheck:
+      check-type-assertions: true  # type assertions that discard the ok bool
+      check-blank: true            # `_ = err` assignments
+
+    govet:
+      enable-all: true
+
+    forbidigo:
+      forbid:
+        - pattern: 'os\.Getenv'
+          msg: "use config.Load() instead; os.Getenv bypasses the central config package"
+        - pattern: 'os\.LookupEnv'
+          msg: "use config.Load() instead; os.LookupEnv bypasses the central config package"
+        - pattern: 'os\.Setenv'
+          msg: "use config.Load() instead; os.Setenv bypasses the central config package"
+        - pattern: 'os\.Unsetenv'
+          msg: "use config.Load() instead; os.Unsetenv bypasses the central config package"
+        - pattern: 'os\.Clearenv'
+          msg: "use config.Load() instead; os.Clearenv bypasses the central config package"
+        - pattern: 'os\.Environ'
+          msg: "use config.Load() instead; os.Environ bypasses the central config package"
+        - pattern: 'os\.ExpandEnv'
+          msg: "use config.Load() instead; os.ExpandEnv bypasses the central config package"
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      settings:
+        hugeParam:
+          sizeThreshold: 128
+
+formatters:
+  enable:
+    - gci      # import section ordering
+    - gofumpt  # stricter gofmt superset
+
+  exclusions:
+    paths:
+      - vendor
+      - frontend
+
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/your-org/your-project)
+
+    gofumpt:
+      extra-rules: true
+

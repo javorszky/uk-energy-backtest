@@ -1,0 +1,39 @@
+# Version control
+.git
+.github
+
+# Claude and AI context docs
+.claude
+.ai
+
+# Tooling configs — not needed for build
+.golangci.yml
+lefthook.yml
+renovate.json
+
+# IDE and OS artifacts
+.idea
+.DS_Store
+*.swp
+*.swo
+
+# Go build artifacts
+vendor
+*.test
+*.out
+coverage.out
+/bin
+
+# Frontend: rebuilt inside Docker; local build outputs excluded
+frontend/node_modules
+frontend/coverage
+# internal/ui/dist is intentionally NOT excluded — the placeholder index.html
+# must be in the build context so //go:embed compiles when frontend-builder
+# runs first and overwrites it.
+
+# Docs and local scripts
+README.md
+CLAUDE.md
+otel_todo.md
+to_fix.md
+scripts/
