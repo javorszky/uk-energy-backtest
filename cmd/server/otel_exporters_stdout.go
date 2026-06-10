@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
-	"github.com/your-org/your-project/internal/config"
+	"github.com/javorszky/uk-energy-backtest/internal/config"
 )
 
 func buildStdoutExporters(cfg config.Config) (exporterSet, error) {

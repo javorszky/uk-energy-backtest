@@ -1,4 +1,4 @@
-module github.com/your-org/your-project
+module github.com/javorszky/uk-energy-backtest
 
 go 1.26.3
 

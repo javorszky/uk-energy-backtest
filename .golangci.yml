@@ -85,7 +85,7 @@ formatters:
       sections:
         - standard
         - default
-        - prefix(github.com/your-org/your-project)
+        - prefix(github.com/javorszky/uk-energy-backtest)
 
     gofumpt:
       extra-rules: true

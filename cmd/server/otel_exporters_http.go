@@ -11,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
-	"github.com/your-org/your-project/internal/config"
+	"github.com/javorszky/uk-energy-backtest/internal/config"
 )
 
 func buildHTTPExporters(ctx context.Context, cfg config.Config) (exporterSet, error) {

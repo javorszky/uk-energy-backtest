@@ -25,7 +25,7 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-sm">
-      <h1 class="text-xl font-semibold text-gray-900 tracking-tight">your-project</h1>
+      <h1 class="text-xl font-semibold text-gray-900 tracking-tight">uk-energy-backtest</h1>
       <p class="text-sm text-gray-400 mt-0.5 mb-6">Go + Vue 3 template</p>
 
       <div class="flex items-center gap-2.5">

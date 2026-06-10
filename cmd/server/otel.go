@@ -18,7 +18,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 
-	"github.com/your-org/your-project/internal/config"
+	"github.com/javorszky/uk-energy-backtest/internal/config"
 )
 
 const (

@@ -11,7 +11,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 
-	"github.com/your-org/your-project/internal/config"
+	"github.com/javorszky/uk-energy-backtest/internal/config"
 )
 
 const (

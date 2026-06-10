@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/your-org/your-project/internal/config"
-	"github.com/your-org/your-project/internal/server"
+	"github.com/javorszky/uk-energy-backtest/internal/config"
+	"github.com/javorszky/uk-energy-backtest/internal/server"
 )
 
 // Injected at build time via -ldflags:

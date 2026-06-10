@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: your-project API
+  title: uk-energy-backtest API
   version: 0.1.0
 
 servers:

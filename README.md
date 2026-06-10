@@ -29,7 +29,7 @@ Click **Use this template → Create a new repository** on GitHub, then clone yo
 bash scripts/init.sh
 ```
 
-This replaces all placeholder strings (`your-org`, `your-project`) with your actual GitHub org and project name across `go.mod`, `CLAUDE.md`, and `frontend/package.json`.
+This replaces all placeholder strings (`your-org`, `uk-energy-backtest`) with your actual GitHub org and project name across `go.mod`, `CLAUDE.md`, and `frontend/package.json`.
 
 ### 3. Activate git hooks
 

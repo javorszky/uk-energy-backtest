@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/your-org/your-project/internal/config"
+	"github.com/javorszky/uk-energy-backtest/internal/config"
 )
 
 func buildGRPCExporters(ctx context.Context, cfg config.Config) (exporterSet, error) {

@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 
-	"github.com/your-org/your-project/internal/ui"
+	"github.com/javorszky/uk-energy-backtest/internal/ui"
 )
 
 // registerStatic serves the compiled Vue SPA via the embedded filesystem.
