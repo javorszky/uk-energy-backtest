@@ -1,35 +1,31 @@
-# Fly.io configuration — Phase 1 embedded deployment: one machine running the
-# single Go binary with the SPA embedded. The app is fully stateless (nothing
-# is persisted server-side), so machines can stop when idle and scale to zero.
+# fly.toml app configuration file generated for uk-energy-backtest on 2026-06-10T19:12:01Z
 #
-#   fly launch --no-deploy   # first time, to create the app
-#   fly deploy
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "uk-energy-backtest"
-primary_region = "lhr"
+app = 'uk-energy-backtest'
+primary_region = 'lhr'
 
 [build]
-  dockerfile = "build/Dockerfile"
+  dockerfile = 'build/Dockerfile'
 
 [env]
-  PORT = "8080"
-  # No OTLP endpoint configured: OTel falls back to stdout exporters, which
-  # land in `fly logs`. Point this at a collector when one exists.
+  PORT = '8080'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
   [[http_service.checks]]
-    interval = "30s"
-    timeout = "5s"
-    grace_period = "10s"
-    method = "GET"
-    path = "/api/v1/health"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/api/v1/health'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
