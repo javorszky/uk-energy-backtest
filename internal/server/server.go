@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 
 	"github.com/javorszky/uk-energy-backtest/internal/config"
+	"github.com/javorszky/uk-energy-backtest/internal/octopus"
 )
 
 const (
@@ -19,6 +20,10 @@ const (
 	gracefulTimeout   = 10 * time.Second
 	readHeaderTimeout = 5 * time.Second
 	readTimeout       = 30 * time.Second
+	// octopusRequestTimeout is the per-HTTP-request (per page) timeout for
+	// upstream Octopus calls; the handler separately bounds the whole
+	// pipeline at octopusTimeout.
+	octopusRequestTimeout = 30 * time.Second
 )
 
 // Server wraps the Echo instance and the address it will listen on.
@@ -69,9 +74,18 @@ func New(cfg config.Config, gitSHA, buildTime string) *Server {
 		e.Use(middleware.CORS(cfg.FrontendOrigin))
 	}
 
+	// Europe/London is guaranteed present by the time/tzdata blank import in
+	// cmd/server; failure here means a broken build, so fail fast.
+	london, err := time.LoadLocation("Europe/London")
+	if err != nil {
+		panic(fmt.Sprintf("load Europe/London tzdata: %v", err))
+	}
+
 	v1 := e.Group("/api/v1")
 	v1.GET("/health", healthHandler)
 	v1.GET("/status", statusHandler(gitSHA, buildTime))
+	v1.POST("/cost", costHandler)
+	v1.POST("/octopus/cost", octopusCostHandler(octopus.NewClient(octopusRequestTimeout), london))
 
 	registerStatic(e)
 

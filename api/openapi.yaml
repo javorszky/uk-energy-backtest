@@ -36,6 +36,135 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /cost:
+    post:
+      operationId: postCost
+      summary: Cost a load profile against one or more tariffs
+      description: >
+        Fully stateless: the pre-aggregated 48-bucket load profile and the
+        tariff definitions go in, a costed result per tariff comes out, and
+        nothing is retained. Raw half-hourly readings never cross this
+        endpoint — clients must aggregate locally.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [profile, tariffs]
+              properties:
+                profile:
+                  $ref: '#/components/schemas/Profile'
+                tariffs:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    $ref: '#/components/schemas/Tariff'
+      responses:
+        '200':
+          description: One costed result per tariff, same order as the request
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CostResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /octopus/cost:
+    post:
+      operationId: postOctopusCost
+      summary: Fetch usage from Octopus Energy, aggregate, and cost tariffs
+      description: >
+        Proxies the Octopus Energy API (the browser cannot call it directly —
+        no CORS). The API key arrives in the X-Octopus-Key header, is used
+        once for upstream Basic auth, and is never stored or logged. Raw
+        half-hourly data is aggregated to the load profile and discarded
+        before responding. Responses carry Cache-Control no-store.
+      parameters:
+        - name: X-Octopus-Key
+          in: header
+          required: true
+          description: Octopus API key, used per-request and discarded
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, period_from, period_to, tariffs]
+              properties:
+                account:
+                  type: string
+                  description: Octopus account number
+                  example: A-1234ABCD
+                period_from:
+                  type: string
+                  format: date
+                  description: Inclusive start date
+                period_to:
+                  type: string
+                  format: date
+                  description: Exclusive end date; at most 732 days after period_from
+                gas_unit:
+                  type: string
+                  enum: [kwh, m3]
+                  default: kwh
+                  description: >
+                    How gas consumption values are interpreted. SMETS1 meters
+                    report kWh; SMETS2 report m³ (converted via calorific value).
+                calorific_value:
+                  type: number
+                  description: Calorific value in MJ/m³ for m³ conversion
+                  default: 39.5
+                tariffs:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    $ref: '#/components/schemas/Tariff'
+      responses:
+        '200':
+          description: The aggregated profile plus one costed result per tariff
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profile, results]
+                properties:
+                  profile:
+                    $ref: '#/components/schemas/Profile'
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CostResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Missing X-Octopus-Key header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream Octopus API call failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   responses:
     BadRequest:
@@ -80,6 +209,133 @@ components:
         status:
           type: string
           example: ok
+
+    Profile:
+      type: object
+      description: >
+        Compact, date-stripped load profile. Buckets are local
+        (Europe/London) half-hours of day; bucket i covers local minute i*30.
+        Values are kWh, each source half-hour rounded to 0.01 kWh
+        (round-half-to-even) before summing into its bucket.
+      required: [supplied_days, import_hh]
+      properties:
+        supplied_days:
+          type: integer
+          minimum: 0
+          description: Count of distinct local calendar dates with import readings
+        import_hh:
+          type: array
+          minItems: 48
+          maxItems: 48
+          items:
+            type: number
+            minimum: 0
+        export_hh:
+          type: array
+          minItems: 48
+          maxItems: 48
+          items:
+            type: number
+            minimum: 0
+          description: Omitted when the dataset has no export meter
+        gas_kwh:
+          type: number
+          minimum: 0
+          description: Total gas in kWh (already converted from m³ if applicable)
+
+    Band:
+      type: object
+      description: >
+        Time-of-use rate window in local clock time. First matching band
+        wins; from > to wraps past midnight. Boundaries must fall on :00 or
+        :30.
+      required: [from, to, rate]
+      properties:
+        from:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):(00|30)$'
+          example: "02:00"
+        to:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):(00|30)$'
+          example: "05:00"
+        rate:
+          type: number
+          description: VAT-inclusive pence per kWh
+
+    Tariff:
+      type: object
+      description: All rates are VAT-inclusive pence, as shown on a consumer quote.
+      required: [name, electricity]
+      properties:
+        name:
+          type: string
+          example: Octopus Flux (current)
+        electricity:
+          type: object
+          required: [standing_charge, import_default]
+          properties:
+            standing_charge:
+              type: number
+              description: Pence per day
+            import_default:
+              type: number
+              description: Fallback pence/kWh for half-hours outside all bands
+            import_bands:
+              type: array
+              items:
+                $ref: '#/components/schemas/Band'
+            export_default:
+              type: number
+              description: Fallback export pence/kWh
+            export_bands:
+              type: array
+              items:
+                $ref: '#/components/schemas/Band'
+        gas:
+          type: object
+          description: Optional; omit for electricity-only tariffs
+          required: [standing_charge, rate]
+          properties:
+            standing_charge:
+              type: number
+              description: Pence per day
+            rate:
+              type: number
+              description: Flat pence per kWh
+
+    CostResult:
+      type: object
+      description: Costed outcome for one tariff. All money values are pence.
+      required: [name, import_p, export_credit_p, gas_p, standing_p, net_p, import_rates, export_rates]
+      properties:
+        name:
+          type: string
+        import_p:
+          type: number
+        export_credit_p:
+          type: number
+          description: Positive credit, already subtracted in net_p
+        gas_p:
+          type: number
+        standing_p:
+          type: number
+        net_p:
+          type: number
+          description: import_p + gas_p + standing_p − export_credit_p
+        import_rates:
+          type: array
+          minItems: 48
+          maxItems: 48
+          items:
+            type: number
+          description: Resolved pence/kWh per bucket, for chart overlays
+        export_rates:
+          type: array
+          minItems: 48
+          maxItems: 48
+          items:
+            type: number
 
     StatusResponse:
       type: object

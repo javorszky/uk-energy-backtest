@@ -8,6 +8,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	// The runtime image is FROM scratch with no tzdata, and the Octopus path
+	// buckets readings in Europe/London local time. Embedding the timezone
+	// database makes time.LoadLocation work without touching the Dockerfile.
+	_ "time/tzdata"
 
 	"github.com/javorszky/uk-energy-backtest/internal/config"
 	"github.com/javorszky/uk-energy-backtest/internal/server"

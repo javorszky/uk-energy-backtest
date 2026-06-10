@@ -12,7 +12,7 @@ import (
 
 const (
 	defaultDomain      = "localhost"
-	defaultServiceName = "your-project"
+	defaultServiceName = "uk-energy-backtest"
 	defaultTransport   = "grpc"
 	envPort            = "PORT"
 	envSamplingRatio   = "OTEL_SAMPLING_RATIO"
