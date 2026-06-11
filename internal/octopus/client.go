@@ -40,6 +40,11 @@ const (
 	// timestampLayout formats period_from/period_to. The brief requires UTC
 	// with a trailing Z; time.RFC3339 on a UTC time produces exactly that.
 	timestampLayout = time.RFC3339
+
+	// Query-parameter names shared by consumption and rates endpoints.
+	paramPeriodFrom = "period_from"
+	paramPeriodTo   = "period_to"
+	paramPageSize   = "page_size"
 )
 
 // segmentRe validates every path segment (account number, MPAN, MPRN, meter
@@ -185,10 +190,10 @@ func (c *Client) Consumption(ctx context.Context, apiKey, pointID, serial string
 	}
 
 	query := url.Values{
-		"period_from": {from.UTC().Format(timestampLayout)},
-		"period_to":   {to.UTC().Format(timestampLayout)},
-		"page_size":   {pageSize},
-		"order_by":    {"period"},
+		paramPeriodFrom: {from.UTC().Format(timestampLayout)},
+		paramPeriodTo:   {to.UTC().Format(timestampLayout)},
+		paramPageSize:   {pageSize},
+		"order_by":      {"period"},
 	}
 
 	var readings []costing.Reading
@@ -253,9 +258,12 @@ func (c *Client) getJSON(ctx context.Context, credential, rawURL string, out any
 	if err != nil {
 		return fmt.Errorf("build request: %w", err)
 	}
-	if strings.HasPrefix(credential, "Bearer ") {
+	switch {
+	case credential == "":
+		// Public endpoint (product rates) — no Authorization header at all.
+	case strings.HasPrefix(credential, "Bearer "):
 		req.Header.Set("Authorization", credential)
-	} else {
+	default:
 		req.SetBasicAuth(credential, "")
 	}
 

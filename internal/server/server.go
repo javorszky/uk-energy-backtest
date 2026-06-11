@@ -88,6 +88,7 @@ func New(cfg config.Config, gitSHA, buildTime string) *Server {
 	octoClient := octopus.NewClient(octopusRequestTimeout)
 	v1.POST("/octopus/cost", octopusCostHandler(octoClient, london))
 	v1.POST("/octopus/tariff", octopusTariffHandler(octoClient, london))
+	v1.GET("/agile/rates", agileRatesHandler(octoClient))
 
 	// The Octopus OAuth connect flow is gated on a client id being
 	// configured; without one the config endpoint reports disabled and the

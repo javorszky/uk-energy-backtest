@@ -96,6 +96,8 @@ Tariff discovery (`tariff.go`):
 | `(*Client).CurrentGasUnitRate` | `func (..., tariffCode string, now) (float64, error)` | Flat gas rate in force now |
 | `(*Client).UnitRateBuckets` | `func (..., tariffCode string, now, loc) (*[48]float64, error)` | Last-26h sweep of unit rates into local buckets (band reconstruction) |
 
+Agile (`agile.go`): `RatePoint`, `(*Client).RateSeries(ctx, product, region, leaf, from, to)` — paginated public price history for `E-1R-{product}-{region}`, direct-debit deduped, same SSRF rules, no credential; `ValidRegion`/`ValidProduct` helpers; `LeafUnitRates`/`LeafStandingCharges` consts.
+
 OAuth (`oauth.go`): `OAuthClient` / `NewOAuthClient` / `(*OAuthClient).ExchangeToken` — forwards token-grant forms to the hardcoded `https://auth.octopus.energy/token/` and relays the response verbatim; `AuthorizeURL` const for the SPA. The API client's `getJSON` treats a "Bearer "-prefixed credential as an OAuth token (Authorization header) instead of Basic auth.
 
 ---
@@ -122,6 +124,7 @@ OAuth (`oauth.go`): `OAuthClient` / `NewOAuthClient` / `(*OAuthClient).ExchangeT
 | `octopusCredential` | `func octopusCredential(c *echo.Context) (string, bool)` | `octopus.go` — resolves `X-Octopus-Token` (preferred, "Bearer "-prefixed) or `X-Octopus-Key` |
 | `oauthConfigHandler` | `func oauthConfigHandler(clientID string) echo.HandlerFunc` | `oauth.go` — `GET /api/v1/oauth/config`; reports enabled + client params |
 | `oauthTokenHandler` | `func oauthTokenHandler(exchanger tokenExchanger, clientID string) echo.HandlerFunc` | `oauth.go` — `POST /api/v1/oauth/token`; relays PKCE/refresh exchange verbatim; route registered only when `OCTOPUS_OAUTH_CLIENT_ID` set |
+| `agileRatesHandler` | `func agileRatesHandler(fetcher rateSeriesFetcher) echo.HandlerFunc` | `agile.go` — `GET /api/v1/agile/rates`; public historical price relay for the on-device Agile backtest; cacheable |
 
 Note: `otelecho` (the contrib package) targets Echo v4 and cannot be used here. `otelMiddleware` is the Echo v5 replacement.
 
@@ -183,6 +186,7 @@ All `fetch` calls live here. No raw `fetch` elsewhere.
 | `timezone.ts` | `localBucket`, `parseTimestamp`, `wallTimeToUtcMs`, `LONDON_TZ` | Intl-based tz conversion (no tz library); ambiguous autumn wall times → earlier instant |
 | `profile.ts` | `buildProfile`, `detectGranularityMinutes` | TS twin of `costing.BuildProfile`; fixture-verified |
 | `csv.ts` | `parseCsv`, `presets`, `detectPreset`, `ColumnMapping` | papaparse wrapper; Octopus/n3rgy presets + generic mapper |
+| `agile.ts` | `costAgainstRates`, `standingForDays`, `distinctLocalDates`, `readingsDateRange` | Historical Agile backtest on raw readings (rule-3 rounding per slot, unmatched tallied); handles negative plunge prices |
 | `oauth.ts` | `buildAuthorizeRedirect`, `consumeCallback`, `codeChallengeS256`, `redirectUri`, `OAUTH_CALLBACK_PATH` | PKCE flow helpers; verifier/state in sessionStorage for the redirect round-trip only; access token held in memory |
 | `tariffStore.ts` | `loadTariffs`, `saveTariffs`, `migrate`, `starterPresets`, `clearTariffs` | localStorage, versioned schema key `ukeb.tariffs` |
 | `datasetStore.ts` | `saveDataset`, `listDatasets`, `loadDataset`, `deleteDataset`, `clearDatasets` | IndexedDB (`idb`), raw readings stay on-device |
@@ -204,6 +208,7 @@ Tests in `lib/__tests__/`; `fixture.spec.ts` consumes `testdata/shared/profile_f
 | `ChartDataTable.vue` | Toggleable table fallback per chart (a11y gate) |
 | `DatasetManager.vue` | Save/load/delete named datasets in IndexedDB |
 | `DeleteMyData.vue` | Reka AlertDialog; wipes localStorage + IndexedDB + remembered key |
+| `AgileComparison.vue` | Optional historical Agile backtest card: region + product inputs, optional Agile Outgoing export credit, coverage warnings; computed on-device from raw readings |
 
 ---
 

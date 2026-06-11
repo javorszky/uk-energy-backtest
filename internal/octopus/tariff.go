@@ -164,9 +164,9 @@ func (c *Client) fetchRates(ctx context.Context, apiKey, tariffCode, leaf string
 		return nil, err
 	}
 	query := url.Values{
-		"period_from": {from.UTC().Format(timestampLayout)},
-		"period_to":   {to.UTC().Format(timestampLayout)},
-		"page_size":   {"1500"},
+		paramPeriodFrom: {from.UTC().Format(timestampLayout)},
+		paramPeriodTo:   {to.UTC().Format(timestampLayout)},
+		paramPageSize:   {ratePageSize},
 	}
 	var resp ratesResponse
 	if err := c.getJSON(ctx, apiKey, base+"?"+query.Encode(), &resp); err != nil {
@@ -178,7 +178,7 @@ func (c *Client) fetchRates(ctx context.Context, apiKey, tariffCode, leaf string
 // CurrentStandingCharge returns the standing charge (pence/day, VAT
 // inclusive) in force now for the tariff.
 func (c *Client) CurrentStandingCharge(ctx context.Context, apiKey, tariffCode string, gas bool, now time.Time) (float64, error) {
-	entries, err := c.fetchRates(ctx, apiKey, tariffCode, "standing-charges", gas, now.Add(-24*time.Hour), now)
+	entries, err := c.fetchRates(ctx, apiKey, tariffCode, LeafStandingCharges, gas, now.Add(-24*time.Hour), now)
 	if err != nil {
 		return 0, err
 	}
@@ -191,7 +191,7 @@ func (c *Client) CurrentStandingCharge(ctx context.Context, apiKey, tariffCode s
 
 // CurrentGasUnitRate returns the flat gas unit rate (pence/kWh) in force now.
 func (c *Client) CurrentGasUnitRate(ctx context.Context, apiKey, tariffCode string, now time.Time) (float64, error) {
-	entries, err := c.fetchRates(ctx, apiKey, tariffCode, "standard-unit-rates", true, now.Add(-24*time.Hour), now)
+	entries, err := c.fetchRates(ctx, apiKey, tariffCode, LeafUnitRates, true, now.Add(-24*time.Hour), now)
 	if err != nil {
 		return 0, err
 	}
@@ -214,7 +214,7 @@ func (c *Client) UnitRateBuckets(ctx context.Context, apiKey, tariffCode string,
 	// local half-hours the UTC steps land in).
 	const sweepSteps = 52
 	from := now.Add(-time.Duration(sweepSteps+1) * slotDuration)
-	entries, err := c.fetchRates(ctx, apiKey, tariffCode, "standard-unit-rates", false, from, now)
+	entries, err := c.fetchRates(ctx, apiKey, tariffCode, LeafUnitRates, false, from, now)
 	if err != nil {
 		return nil, err
 	}

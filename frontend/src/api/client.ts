@@ -1,3 +1,4 @@
+import type { RateSlot } from '../lib/agile'
 import type { OAuthConfig, TokenResponse } from '../lib/oauth'
 import type {
   CostResponse,
@@ -118,6 +119,31 @@ export function postOctopusTariff(
       timeoutMs: OCTOPUS_TIMEOUT_MS,
     },
   )
+}
+
+const AGILE_RATES_TIMEOUT_MS = 65_000
+
+/**
+ * Fetch the published historical price series for a dynamic (Agile-style)
+ * product. Public data relayed by the backend — no credential involved.
+ */
+export function getAgileRates(params: {
+  product: string
+  region: string
+  kind: 'unit' | 'standing'
+  periodFrom: string
+  periodTo: string
+}): Promise<{ results: RateSlot[] }> {
+  const query = new URLSearchParams({
+    product: params.product,
+    region: params.region,
+    kind: params.kind,
+    period_from: params.periodFrom,
+    period_to: params.periodTo,
+  })
+  return request<{ results: RateSlot[] }>(`/api/v1/agile/rates?${query.toString()}`, {
+    timeoutMs: AGILE_RATES_TIMEOUT_MS,
+  })
 }
 
 /** Whether the Octopus OAuth connect flow is configured server-side. */

@@ -117,6 +117,14 @@
       <div v-if="!oauthConnected">
         <label for="octo-key" class="block text-sm font-medium text-gray-700">
           Octopus API key
+          <a
+            href="https://octopus.energy/dashboard/developer/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="ml-2 font-normal text-indigo-600 hover:text-indigo-800 underline"
+          >
+            find it here ↗
+          </a>
           <input
             id="octo-key"
             v-model="apiKey"

@@ -27,6 +27,7 @@
   import type { CostResult, Profile, RawReading, Tariff } from './lib/types'
   import type { StoredDataset } from './lib/datasetStore'
 
+  import AgileComparison from './components/AgileComparison.vue'
   import CostComparisonChart from './components/CostComparisonChart.vue'
   import CsvImport from './components/CsvImport.vue'
   import DatasetManager from './components/DatasetManager.vue'
@@ -364,6 +365,18 @@
         <p v-else class="text-sm text-gray-400">
           Provide usage data and at least one tariff, then calculate.
         </p>
+      </section>
+
+      <section aria-labelledby="agile-heading" class="space-y-4">
+        <h2 id="agile-heading" class="text-lg font-semibold text-gray-900">
+          Optional · Octopus Agile backtest
+        </h2>
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+          <AgileComparison
+            :import-readings="streams.import ?? []"
+            :export-readings="streams.export"
+          />
+        </div>
       </section>
 
       <footer class="border-t border-gray-200 pt-6 pb-10">

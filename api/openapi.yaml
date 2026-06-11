@@ -342,6 +342,83 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /agile/rates:
+    get:
+      operationId: getAgileRates
+      summary: Historical price series for a dynamic electricity product
+      description: >
+        Relays the published half-hourly unit rates (or daily standing
+        charges) for an Agile-style product and GSP region, so the frontend
+        can backtest raw readings on-device. Public data — no credential.
+        Responses are cacheable (historical prices are immutable).
+      parameters:
+        - name: product
+          in: query
+          required: true
+          schema:
+            type: string
+          example: AGILE-24-10-01
+        - name: region
+          in: query
+          required: true
+          description: GSP region letter (A–P, excluding I and O)
+          schema:
+            type: string
+            pattern: '^[A-HJ-NP]$'
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [unit, standing]
+            default: unit
+        - name: period_from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: period_to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Price intervals, oldest first as published
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [from, rate]
+                      properties:
+                        from:
+                          type: string
+                          format: date-time
+                        to:
+                          type: string
+                          format: date-time
+                          description: Null for the open-ended current interval
+                        rate:
+                          type: number
+                          description: VAT-inclusive pence; can be negative (plunge pricing)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          description: Upstream Octopus API call failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   responses:
     BadRequest:
