@@ -13,6 +13,7 @@ import (
 
 	"github.com/javorszky/uk-energy-backtest/internal/config"
 	"github.com/javorszky/uk-energy-backtest/internal/octopus"
+	"github.com/javorszky/uk-energy-backtest/internal/ratecache"
 )
 
 const (
@@ -88,7 +89,10 @@ func New(cfg config.Config, gitSHA, buildTime string) *Server {
 	octoClient := octopus.NewClient(octopusRequestTimeout)
 	v1.POST("/octopus/cost", octopusCostHandler(octoClient, london))
 	v1.POST("/octopus/tariff", octopusTariffHandler(octoClient, london))
-	v1.GET("/agile/rates", agileRatesHandler(octoClient))
+	// The historical-rates relay sits behind an in-memory partial-coverage
+	// cache: repeated or overlapping backtests only fetch the spans Octopus
+	// has not already served this process.
+	v1.GET("/agile/rates", agileRatesHandler(ratecache.New(octoClient)))
 
 	// The Octopus OAuth connect flow is gated on a client id being
 	// configured; without one the config endpoint reports disabled and the

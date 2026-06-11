@@ -102,6 +102,19 @@ OAuth (`oauth.go`): `OAuthClient` / `NewOAuthClient` / `(*OAuthClient).ExchangeT
 
 ---
 
+### `internal/ratecache` — partial-coverage price cache
+`ratecache.go`, `ratecache_test.go`
+
+| Symbol | Signature | Purpose |
+|--------|-----------|---------|
+| `Fetcher` | interface matching `(*octopus.Client).RateSeries` | Upstream the cache fills from |
+| `Cache` / `New` | `func New(fetcher Fetcher) *Cache` | In-memory cache keyed `(product, region, kind)`; tracks the covered time envelope per key |
+| `(*Cache).RateSeries` | same signature as the client | Serves overlap from memory; fetches only the uncovered head/tail; disjoint requests replace the entry; coverage clamped at `now` so the still-being-published edge stays fresh; LRU cap 64 entries |
+
+Process-local by design — dies with the Fly machine on scale-to-zero, warms on first use. Caches public price data only; no user data is ever stored.
+
+---
+
 ### `internal/server` — HTTP server
 `server.go`, `middleware.go`, `status.go`, `static.go`, `errors.go`, `cost.go`, `octopus.go` + tests incl. `middleware_redaction_test.go`
 
@@ -124,7 +137,7 @@ OAuth (`oauth.go`): `OAuthClient` / `NewOAuthClient` / `(*OAuthClient).ExchangeT
 | `octopusCredential` | `func octopusCredential(c *echo.Context) (string, bool)` | `octopus.go` — resolves `X-Octopus-Token` (preferred, "Bearer "-prefixed) or `X-Octopus-Key` |
 | `oauthConfigHandler` | `func oauthConfigHandler(clientID string) echo.HandlerFunc` | `oauth.go` — `GET /api/v1/oauth/config`; reports enabled + client params |
 | `oauthTokenHandler` | `func oauthTokenHandler(exchanger tokenExchanger, clientID string) echo.HandlerFunc` | `oauth.go` — `POST /api/v1/oauth/token`; relays PKCE/refresh exchange verbatim; route registered only when `OCTOPUS_OAUTH_CLIENT_ID` set |
-| `agileRatesHandler` | `func agileRatesHandler(fetcher rateSeriesFetcher) echo.HandlerFunc` | `agile.go` — `GET /api/v1/agile/rates`; public historical price relay for the on-device Agile backtest; cacheable |
+| `agileRatesHandler` | `func agileRatesHandler(fetcher rateSeriesFetcher) echo.HandlerFunc` | `agile.go` — `GET /api/v1/agile/rates`; public historical price relay for the on-device Agile backtest; served through `ratecache` (partial-coverage in-memory cache) + browser-cacheable |
 
 Note: `otelecho` (the contrib package) targets Echo v4 and cannot be used here. `otelMiddleware` is the Echo v5 replacement.
 
