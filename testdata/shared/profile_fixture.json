@@ -4,43 +4,169 @@
   "calorific_value": 39.5,
   "readings": {
     "import": [
-      { "interval_start": "2024-03-30T00:00:00Z", "consumption": 0.125 },
-      { "interval_start": "2024-03-30T17:00:00Z", "consumption": 1.0 },
-      { "interval_start": "2024-03-31T00:30:00Z", "consumption": 0.375 },
-      { "interval_start": "2024-03-31T01:00:00Z", "consumption": 0.5 },
-      { "interval_start": "2024-03-31T02:00:00Z", "consumption": 0.2 },
-      { "interval_start": "2024-10-27T00:00:00Z", "consumption": 0.625 },
-      { "interval_start": "2024-10-27T00:30:00Z", "consumption": 0.875 },
-      { "interval_start": "2024-10-27T01:00:00Z", "consumption": 0.4 },
-      { "interval_start": "2024-10-27T01:30:00Z", "consumption": 0.1 },
-      { "interval_start": "2024-10-27T17:00:00Z", "consumption": 2.0 }
+      {
+        "interval_start": "2024-03-30T00:00:00Z",
+        "consumption": 0.125
+      },
+      {
+        "interval_start": "2024-03-30T17:00:00Z",
+        "consumption": 1.0
+      },
+      {
+        "interval_start": "2024-03-31T00:30:00Z",
+        "consumption": 0.375
+      },
+      {
+        "interval_start": "2024-03-31T01:00:00Z",
+        "consumption": 0.5
+      },
+      {
+        "interval_start": "2024-03-31T02:00:00Z",
+        "consumption": 0.2
+      },
+      {
+        "interval_start": "2024-10-27T00:00:00Z",
+        "consumption": 0.625
+      },
+      {
+        "interval_start": "2024-10-27T00:30:00Z",
+        "consumption": 0.875
+      },
+      {
+        "interval_start": "2024-10-27T01:00:00Z",
+        "consumption": 0.4
+      },
+      {
+        "interval_start": "2024-10-27T01:30:00Z",
+        "consumption": 0.1
+      },
+      {
+        "interval_start": "2024-10-27T17:00:00Z",
+        "consumption": 2.0
+      }
     ],
     "export": [
-      { "interval_start": "2024-03-30T11:00:00Z", "consumption": 1.5 },
-      { "interval_start": "2024-10-27T12:00:00Z", "consumption": 2.125 }
+      {
+        "interval_start": "2024-03-30T11:00:00Z",
+        "consumption": 1.5
+      },
+      {
+        "interval_start": "2024-10-27T12:00:00Z",
+        "consumption": 2.125
+      }
     ],
     "gas": [
-      { "interval_start": "2024-03-30T06:00:00Z", "consumption": 1.0 },
-      { "interval_start": "2024-10-27T06:00:00Z", "consumption": 2.0 }
+      {
+        "interval_start": "2024-03-30T06:00:00Z",
+        "consumption": 1.0
+      },
+      {
+        "interval_start": "2024-10-27T06:00:00Z",
+        "consumption": 2.0
+      }
     ]
   },
   "expected_profile": {
     "supplied_days": 3,
     "import_hh": [
-      0.12, 0.38, 1.02, 0.98, 0.5, 0.0, 0.2, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+      0.12,
+      0.38,
+      1.02,
+      0.98,
+      0.5,
+      0.0,
+      0.2,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      3.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
     ],
     "export_hh": [
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 0.0,
-      2.12, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.5,
+      0.0,
+      2.12,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
     ],
     "gas_kwh": 33.66
   },
@@ -51,15 +177,30 @@
         "standing_charge": 50.0,
         "import_default": 30.0,
         "import_bands": [
-          { "from": "23:00", "to": "01:00", "rate": 12.0 },
-          { "from": "16:00", "to": "19:00", "rate": 45.0 }
+          {
+            "from": "23:00",
+            "to": "01:00",
+            "rate": 12.0
+          },
+          {
+            "from": "16:00",
+            "to": "19:00",
+            "rate": 45.0
+          }
         ],
         "export_default": 10.0,
         "export_bands": [
-          { "from": "16:00", "to": "19:00", "rate": 30.0 }
+          {
+            "from": "16:00",
+            "to": "19:00",
+            "rate": 30.0
+          }
         ]
       },
-      "gas": { "standing_charge": 30.0, "rate": 6.0 }
+      "gas": {
+        "standing_charge": 30.0,
+        "rate": 6.0
+      }
     },
     {
       "name": "Flat",
@@ -77,17 +218,23 @@
       "name": "Flux-like",
       "import_p": 222.0,
       "export_credit_p": 36.2,
+      "elec_standing_p": 150.0,
+      "elec_net_p": 335.8,
       "gas_p": 201.96,
-      "standing_p": 240.0,
-      "net_p": 627.76
+      "gas_standing_p": 90.0,
+      "gas_total_p": 291.96,
+      "total_p": 627.76
     },
     {
       "name": "Flat",
       "import_p": 155.0,
       "export_credit_p": 54.3,
+      "elec_standing_p": 180.0,
+      "elec_net_p": 280.7,
       "gas_p": 0.0,
-      "standing_p": 180.0,
-      "net_p": 280.7
+      "gas_standing_p": 0.0,
+      "gas_total_p": 0.0,
+      "total_p": 280.7
     }
   ]
 }

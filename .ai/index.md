@@ -57,8 +57,8 @@ Env vars: `PORT` (default `8080`), `DOMAIN` (default `localhost`), `FRONTEND_ORI
 | `Profile` | `struct{ ExportHH *[48]float64; ImportHH [48]float64; SuppliedDays int; GasKWh float64 }` | Date-stripped load profile; the front/back contract |
 | `Band` | `struct{ From, To string; Rate float64 }` | "HH:MM" local-time rate window; `From > To` wraps midnight |
 | `Electricity`, `Gas`, `Tariff` | structs | Tariff model, VAT-inclusive pence; `Tariff.Gas` optional |
-| `Result` | `struct{ Name string; ImportPence, ExportCreditP, GasPence, StandingPence, NetPence float64; ImportRates, ExportRates [48]float64 }` | Costed outcome; rate arrays feed the chart overlay |
-| `Cost` | `func Cost(p *Profile, t Tariff) (Result, error)` | Rules 2/4/6/7: band match, sums, standing, net = import+gas+standing−export |
+| `Result` | `struct{ Name string; ImportPence, ExportCreditP, ElecStandingPence, ElecNetPence, GasPence, GasStandingPence, GasTotalPence, TotalPence float64; ImportRates, ExportRates [48]float64 }` | Costed outcome; electricity and gas are separate entities (own standing + subtotal), TotalPence = combined net; rate arrays feed the chart overlay |
+| `Cost` | `func Cost(p *Profile, t Tariff) (Result, error)` | Rules 2/4/6/7 with fuels split: elec net = import+elec standing−export; gas total = usage+gas standing; total = both |
 | `BandsFromRates` | `func BandsFromRates(rates *[48]float64) (def float64, bands []Band)` | `bands.go` — inverse of rate resolution: modal default + runs as bands (wrap-aware); for tariff prefill |
 | `DistinctRates`, `MeanRate` | helpers over `*[48]float64` | `bands.go` — Agile detection and flat-average fallback |
 | `Reading` | `struct{ IntervalStart time.Time; Consumption float64 }` | One metered half-hour |
@@ -203,7 +203,7 @@ Tests in `lib/__tests__/`; `fixture.spec.ts` consumes `testdata/shared/profile_f
 | `CsvImport.vue` | Three-stream upload, preset/column mapping, tz + gas-unit selectors |
 | `OctopusConnect.vue` | Key/account/period form; key memory-only by default, opt-in persistence behind a warning; "Prefill my current tariff" button (emits `prefill`) |
 | `TariffEditor.vue` | One tariff; local copy + `update:modelValue` (parent re-keys on list restructure); band rows constrained to :00/:30 |
-| `CostComparisonChart.vue` | Stacked bars, export as negative credit, net labelled |
+| `CostComparisonChart.vue` | Electricity bars (import+standing, export negative, elec net labelled) + separate gas bars for gas-pricing tariffs + combined-total table |
 | `LoadProfileChart.vue` | 48-bucket profile with selected tariff's rate overlay |
 | `ChartDataTable.vue` | Toggleable table fallback per chart (a11y gate) |
 | `DatasetManager.vue` | Save/load/delete named datasets in IndexedDB |

@@ -45,14 +45,23 @@ export interface Tariff {
   gas?: GasTariff
 }
 
-/** Costed outcome for one tariff; money values are pence. */
+/**
+ * Costed outcome for one tariff; money values are pence. Electricity and
+ * gas are separate entities, each with its own standing charge and
+ * subtotal; total_p is the combined net (rule 7 regrouped by fuel).
+ */
 export interface CostResult {
   name: string
   import_p: number
   export_credit_p: number
+  elec_standing_p: number
+  /** import + elec standing − export credit */
+  elec_net_p: number
   gas_p: number
-  standing_p: number
-  net_p: number
+  gas_standing_p: number
+  /** gas usage + gas standing */
+  gas_total_p: number
+  total_p: number
   import_rates: number[]
   export_rates: number[]
 }

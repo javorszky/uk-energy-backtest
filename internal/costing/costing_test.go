@@ -59,11 +59,11 @@ func TestCostEmptyBandsUsesDefaultEverywhere(t *testing.T) {
 			t.Errorf("ImportRates[%d] = %v, want 25", i, rate)
 		}
 	}
-	if !almostEqual(r.StandingPence, 10) {
-		t.Errorf("StandingPence = %v, want 10", r.StandingPence)
+	if !almostEqual(r.ElecStandingPence, 10) {
+		t.Errorf("ElecStandingPence = %v, want 10", r.ElecStandingPence)
 	}
-	if !almostEqual(r.NetPence, 48*25.0+10) {
-		t.Errorf("NetPence = %v, want %v", r.NetPence, 48*25.0+10)
+	if !almostEqual(r.TotalPence, 48*25.0+10) {
+		t.Errorf("TotalPence = %v, want %v", r.TotalPence, 48*25.0+10)
 	}
 }
 
@@ -215,9 +215,12 @@ func TestCostExportIsACredit(t *testing.T) {
 	if !almostEqual(r.ExportCreditP, 30) {
 		t.Errorf("ExportCreditP = %v, want 30 (positive)", r.ExportCreditP)
 	}
-	// Net = 30 (import) + 40 (standing) − 30 (export) = 40. Subtracted once.
-	if !almostEqual(r.NetPence, 40) {
-		t.Errorf("NetPence = %v, want 40", r.NetPence)
+	// Elec net = 30 (import) + 40 (standing) − 30 (export) = 40. Subtracted once.
+	if !almostEqual(r.ElecNetPence, 40) {
+		t.Errorf("ElecNetPence = %v, want 40", r.ElecNetPence)
+	}
+	if !almostEqual(r.TotalPence, 40) {
+		t.Errorf("TotalPence = %v, want 40 (no gas)", r.TotalPence)
 	}
 }
 
@@ -238,10 +241,8 @@ func TestCostNoExportMeter(t *testing.T) {
 	}
 }
 
-func TestCostGasHandling(t *testing.T) {
-	t.Parallel()
-
-	t.Run("tariff without gas block prices gas at zero", func(t *testing.T) {
+func TestCostGasNoBlockPricesZero(t *testing.T) {
+	{
 		t.Parallel()
 		p := costing.Profile{SuppliedDays: 2, GasKWh: 100}
 		tariff := costing.Tariff{
@@ -254,12 +255,17 @@ func TestCostGasHandling(t *testing.T) {
 		if r.GasPence != 0 {
 			t.Errorf("GasPence = %v, want 0", r.GasPence)
 		}
-		if !almostEqual(r.StandingPence, 100) {
-			t.Errorf("StandingPence = %v, want 100 (no gas standing)", r.StandingPence)
+		if !almostEqual(r.ElecStandingPence, 100) {
+			t.Errorf("ElecStandingPence = %v, want 100", r.ElecStandingPence)
 		}
-	})
+		if r.GasStandingPence != 0 || r.GasTotalPence != 0 {
+			t.Errorf("gas standing/total = %v/%v, want 0/0 (no gas block)", r.GasStandingPence, r.GasTotalPence)
+		}
+	}
+}
 
-	t.Run("gas standing skipped when dataset has no gas", func(t *testing.T) {
+func TestCostGasStandingSkippedWithoutGasData(t *testing.T) {
+	{
 		t.Parallel()
 		p := costing.Profile{SuppliedDays: 2}
 		tariff := costing.Tariff{
@@ -273,12 +279,17 @@ func TestCostGasHandling(t *testing.T) {
 		if r.GasPence != 0 {
 			t.Errorf("GasPence = %v, want 0", r.GasPence)
 		}
-		if !almostEqual(r.StandingPence, 100) {
-			t.Errorf("StandingPence = %v, want 100 (gas standing skipped)", r.StandingPence)
+		if !almostEqual(r.ElecStandingPence, 100) {
+			t.Errorf("ElecStandingPence = %v, want 100", r.ElecStandingPence)
 		}
-	})
+		if r.GasStandingPence != 0 {
+			t.Errorf("GasStandingPence = %v, want 0 (dataset has no gas)", r.GasStandingPence)
+		}
+	}
+}
 
-	t.Run("dual fuel charges both standings", func(t *testing.T) {
+func TestCostGasDualFuelChargesBothStandings(t *testing.T) {
+	{
 		t.Parallel()
 		p := costing.Profile{SuppliedDays: 2, GasKWh: 10}
 		tariff := costing.Tariff{
@@ -292,8 +303,14 @@ func TestCostGasHandling(t *testing.T) {
 		if !almostEqual(r.GasPence, 60) {
 			t.Errorf("GasPence = %v, want 60", r.GasPence)
 		}
-		if !almostEqual(r.StandingPence, 160) {
-			t.Errorf("StandingPence = %v, want 160", r.StandingPence)
+		if !almostEqual(r.ElecStandingPence, 100) {
+			t.Errorf("ElecStandingPence = %v, want 100", r.ElecStandingPence)
 		}
-	})
+		if !almostEqual(r.GasStandingPence, 60) {
+			t.Errorf("GasStandingPence = %v, want 60", r.GasStandingPence)
+		}
+		if !almostEqual(r.GasTotalPence, 120) {
+			t.Errorf("GasTotalPence = %v, want 120 (60 usage + 60 standing)", r.GasTotalPence)
+		}
+	}
 }

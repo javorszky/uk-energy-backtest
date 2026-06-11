@@ -44,8 +44,8 @@ func TestCostEndpointWithSharedFixture(t *testing.T) {
 		ExpectedProfile json.RawMessage `json:"expected_profile"`
 		Tariffs         json.RawMessage `json:"tariffs"`
 		ExpectedResults []struct {
-			Name     string  `json:"name"`
-			NetPence float64 `json:"net_p"`
+			Name       string  `json:"name"`
+			TotalPence float64 `json:"total_p"`
 		} `json:"expected_results"`
 	}
 	require.NoError(t, json.Unmarshal(raw, &fixture))
@@ -56,15 +56,15 @@ func TestCostEndpointWithSharedFixture(t *testing.T) {
 
 	var resp struct {
 		Results []struct {
-			Name     string  `json:"name"`
-			NetPence float64 `json:"net_p"`
+			Name       string  `json:"name"`
+			TotalPence float64 `json:"total_p"`
 		} `json:"results"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	require.Len(t, resp.Results, len(fixture.ExpectedResults))
 	for i, want := range fixture.ExpectedResults {
 		assert.Equal(t, want.Name, resp.Results[i].Name)
-		assert.InDelta(t, want.NetPence, resp.Results[i].NetPence, 1e-9)
+		assert.InDelta(t, want.TotalPence, resp.Results[i].TotalPence, 1e-9)
 	}
 }
 

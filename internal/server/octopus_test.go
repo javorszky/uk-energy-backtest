@@ -125,7 +125,8 @@ func TestOctopusCostFullPipeline(t *testing.T) {
 
 	require.Len(t, resp.Results, 1)
 	// import 3 kWh × 25p + standing 50p − export 1 kWh × 15p = 110p.
-	assert.InDelta(t, 110.0, resp.Results[0].NetPence, 1e-9)
+	assert.InDelta(t, 110.0, resp.Results[0].ElecNetPence, 1e-9)
+	assert.InDelta(t, 110.0, resp.Results[0].TotalPence, 1e-9)
 }
 
 func TestOctopusCostUpstreamFailure(t *testing.T) {

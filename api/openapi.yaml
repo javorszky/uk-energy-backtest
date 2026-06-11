@@ -560,8 +560,24 @@ components:
 
     CostResult:
       type: object
-      description: Costed outcome for one tariff. All money values are pence.
-      required: [name, import_p, export_credit_p, gas_p, standing_p, net_p, import_rates, export_rates]
+      description: >
+        Costed outcome for one tariff. All money values are pence.
+        Electricity and gas are separate entities, each with its own
+        standing charge and subtotal; total_p is the combined net.
+      required:
+        [
+          name,
+          import_p,
+          export_credit_p,
+          elec_standing_p,
+          elec_net_p,
+          gas_p,
+          gas_standing_p,
+          gas_total_p,
+          total_p,
+          import_rates,
+          export_rates,
+        ]
       properties:
         name:
           type: string
@@ -569,14 +585,25 @@ components:
           type: number
         export_credit_p:
           type: number
-          description: Positive credit, already subtracted in net_p
+          description: Positive credit, already subtracted in elec_net_p
+        elec_standing_p:
+          type: number
+          description: Electricity standing charge only
+        elec_net_p:
+          type: number
+          description: import_p + elec_standing_p − export_credit_p
         gas_p:
           type: number
-        standing_p:
+          description: Gas usage cost (kWh × rate)
+        gas_standing_p:
           type: number
-        net_p:
+          description: Gas standing charge only
+        gas_total_p:
           type: number
-          description: import_p + gas_p + standing_p − export_credit_p
+          description: gas_p + gas_standing_p
+        total_p:
+          type: number
+          description: elec_net_p + gas_total_p (costing rule 7, regrouped by fuel)
         import_rates:
           type: array
           minItems: 48

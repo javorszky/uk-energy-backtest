@@ -59,23 +59,37 @@ type Tariff struct {
 	Electricity Electricity `json:"electricity"`
 }
 
-// Result is the costed outcome for one tariff. Money fields are pence. The
-// per-bucket rate arrays are returned so the frontend can overlay rate bands
-// on the daily load-profile chart without re-implementing band matching.
+// Result is the costed outcome for one tariff. Money fields are pence.
+// Electricity and gas are kept as separate entities — each with its own
+// standing charge and its own subtotal — so an electricity-only comparison
+// (e.g. against Agile) stays apples-to-apples even on dual-fuel tariffs.
+// TotalPence is rule 7's net across both fuels. The per-bucket rate arrays
+// are returned so the frontend can overlay rate bands on the daily
+// load-profile chart without re-implementing band matching.
 type Result struct {
-	Name          string                 `json:"name"`
-	ImportPence   float64                `json:"import_p"`
-	ExportCreditP float64                `json:"export_credit_p"`
-	GasPence      float64                `json:"gas_p"`
-	StandingPence float64                `json:"standing_p"`
-	NetPence      float64                `json:"net_p"`
-	ImportRates   [BucketsPerDay]float64 `json:"import_rates"`
-	ExportRates   [BucketsPerDay]float64 `json:"export_rates"`
+	Name          string  `json:"name"`
+	ImportPence   float64 `json:"import_p"`
+	ExportCreditP float64 `json:"export_credit_p"`
+	// ElecStandingPence is the electricity standing charge only.
+	ElecStandingPence float64 `json:"elec_standing_p"`
+	// ElecNetPence = import + electricity standing − export credit.
+	ElecNetPence float64 `json:"elec_net_p"`
+	// GasPence is the gas usage cost (kWh × rate).
+	GasPence float64 `json:"gas_p"`
+	// GasStandingPence is the gas standing charge only.
+	GasStandingPence float64 `json:"gas_standing_p"`
+	// GasTotalPence = gas usage + gas standing.
+	GasTotalPence float64 `json:"gas_total_p"`
+	// TotalPence = elec net + gas total (rule 7: import + gas + standing −
+	// export credit, regrouped by fuel).
+	TotalPence  float64                `json:"total_p"`
+	ImportRates [BucketsPerDay]float64 `json:"import_rates"`
+	ExportRates [BucketsPerDay]float64 `json:"export_rates"`
 }
 
 // Cost prices a profile against one tariff (costing rules 2, 4, 6, 7).
-// Export is a credit: it is subtracted once, in NetPence only — the
-// ExportCreditP field itself is positive.
+// Export is a credit: it is subtracted once, in ElecNetPence (and therefore
+// TotalPence) — the ExportCreditP field itself is positive.
 func Cost(p *Profile, t Tariff) (Result, error) {
 	r := Result{Name: t.Name}
 
@@ -97,26 +111,28 @@ func Cost(p *Profile, t Tariff) (Result, error) {
 	r.ExportCreditP = exp
 	r.ExportRates = expRates
 
-	// Gas is flat (rule 4). A tariff without a gas block prices any gas in
-	// the profile at zero rather than erroring, so an electricity-only quote
-	// can still be compared against a dual-fuel dataset.
-	gasStanding := 0.0
-	if t.Gas != nil {
-		r.GasPence = p.GasKWh * t.Gas.Rate
-		// Gas standing applies only when the dataset actually has gas;
-		// otherwise an electricity-only household comparing a dual-fuel
-		// quote would be charged for a meter it does not have.
-		if p.GasKWh > 0 {
-			gasStanding = t.Gas.StandingCharge
-		}
-	}
-
 	// Rule 6: supplied_days counts distinct local calendar dates with import
 	// readings, so data gaps don't mis-charge standing.
-	r.StandingPence = float64(p.SuppliedDays) * (t.Electricity.StandingCharge + gasStanding)
+	days := float64(p.SuppliedDays)
+	r.ElecStandingPence = days * t.Electricity.StandingCharge
+	r.ElecNetPence = r.ImportPence + r.ElecStandingPence - r.ExportCreditP
 
-	// Rule 7: net = import + gas + standing − export credit.
-	r.NetPence = r.ImportPence + r.GasPence + r.StandingPence - r.ExportCreditP
+	// Gas is flat (rule 4) and a fully separate entity. A tariff without a
+	// gas block prices any gas in the profile at zero rather than erroring,
+	// so an electricity-only quote can still be compared against a dual-fuel
+	// dataset. Gas standing applies only when the dataset actually has gas;
+	// otherwise an electricity-only household comparing a dual-fuel quote
+	// would be charged for a meter it does not have.
+	if t.Gas != nil {
+		r.GasPence = p.GasKWh * t.Gas.Rate
+		if p.GasKWh > 0 {
+			r.GasStandingPence = days * t.Gas.StandingCharge
+		}
+	}
+	r.GasTotalPence = r.GasPence + r.GasStandingPence
+
+	// Rule 7: net = import + gas + standing − export credit, regrouped.
+	r.TotalPence = r.ElecNetPence + r.GasTotalPence
 
 	return r, nil
 }

@@ -29,12 +29,15 @@ type fixture struct {
 	} `json:"readings"`
 	Tariffs         []costing.Tariff `json:"tariffs"`
 	ExpectedResults []struct {
-		Name          string  `json:"name"`
-		ImportPence   float64 `json:"import_p"`
-		ExportCreditP float64 `json:"export_credit_p"`
-		GasPence      float64 `json:"gas_p"`
-		StandingPence float64 `json:"standing_p"`
-		NetPence      float64 `json:"net_p"`
+		Name              string  `json:"name"`
+		ImportPence       float64 `json:"import_p"`
+		ExportCreditP     float64 `json:"export_credit_p"`
+		ElecStandingPence float64 `json:"elec_standing_p"`
+		ElecNetPence      float64 `json:"elec_net_p"`
+		GasPence          float64 `json:"gas_p"`
+		GasStandingPence  float64 `json:"gas_standing_p"`
+		GasTotalPence     float64 `json:"gas_total_p"`
+		TotalPence        float64 `json:"total_p"`
 	} `json:"expected_results"`
 	ExpectedProfile costing.Profile `json:"expected_profile"`
 	CalorificValue  float64         `json:"calorific_value"`
@@ -121,9 +124,12 @@ func TestFixtureCost(t *testing.T) {
 		}{
 			{"import_p", r.ImportPence, want.ImportPence},
 			{"export_credit_p", r.ExportCreditP, want.ExportCreditP},
+			{"elec_standing_p", r.ElecStandingPence, want.ElecStandingPence},
+			{"elec_net_p", r.ElecNetPence, want.ElecNetPence},
 			{"gas_p", r.GasPence, want.GasPence},
-			{"standing_p", r.StandingPence, want.StandingPence},
-			{"net_p", r.NetPence, want.NetPence},
+			{"gas_standing_p", r.GasStandingPence, want.GasStandingPence},
+			{"gas_total_p", r.GasTotalPence, want.GasTotalPence},
+			{"total_p", r.TotalPence, want.TotalPence},
 		}
 		for _, c := range checks {
 			if math.Abs(c.got-c.want) > moneyEps {
