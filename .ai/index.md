@@ -41,7 +41,7 @@ shifts. Do not let it drift from the actual code.
 | `Load` | `func Load() (Config, error)` | Parses OS environment; call once at startup |
 | `LoadFrom` | `func LoadFrom(vars map[string]string) (Config, error)` | Parses from an in-memory map; use in tests instead of `os.Setenv` |
 
-Env vars: `PORT` (default `8080`), `DOMAIN` (default `localhost`), `FRONTEND_ORIGIN` (optional), `OTEL_EXPORTER_OTLP_ENDPOINT` (empty → stdout exporters), `OTEL_EXPORTER_OTLP_PROTOCOL` (`grpc` or `http`, default `grpc`), `OTEL_SERVICE_NAME` (default `uk-energy-backtest`), `OTEL_SAMPLING_RATIO` (float 0–1, default `1.0`), `OTEL_METRIC_EXPORT_INTERVAL` (Go duration, default `15s`).
+Env vars: `PORT` (default `8080`), `DOMAIN` (default `localhost`), `FRONTEND_ORIGIN` (optional), `OCTOPUS_OAUTH_CLIENT_ID` (optional — gates the Octopus OAuth connect flow; empty disables it), `OTEL_EXPORTER_OTLP_ENDPOINT` (empty → stdout exporters), `OTEL_EXPORTER_OTLP_PROTOCOL` (`grpc` or `http`, default `grpc`), `OTEL_SERVICE_NAME` (default `uk-energy-backtest`), `OTEL_SAMPLING_RATIO` (float 0–1, default `1.0`), `OTEL_METRIC_EXPORT_INTERVAL` (Go duration, default `15s`).
 
 **To change:** add/remove a config variable → `Config` struct + this table.  
 **Rule:** never call `os.Getenv` outside this package (enforced by golangci-lint `forbidigo`).
@@ -96,6 +96,8 @@ Tariff discovery (`tariff.go`):
 | `(*Client).CurrentGasUnitRate` | `func (..., tariffCode string, now) (float64, error)` | Flat gas rate in force now |
 | `(*Client).UnitRateBuckets` | `func (..., tariffCode string, now, loc) (*[48]float64, error)` | Last-26h sweep of unit rates into local buckets (band reconstruction) |
 
+OAuth (`oauth.go`): `OAuthClient` / `NewOAuthClient` / `(*OAuthClient).ExchangeToken` — forwards token-grant forms to the hardcoded `https://auth.octopus.energy/token/` and relays the response verbatim; `AuthorizeURL` const for the SPA. The API client's `getJSON` treats a "Bearer "-prefixed credential as an OAuth token (Authorization header) instead of Basic auth.
+
 ---
 
 ### `internal/server` — HTTP server
@@ -117,6 +119,9 @@ Tariff discovery (`tariff.go`):
 | `octopusCostHandler` | `func octopusCostHandler(fetcher meterFetcher, loc *time.Location) echo.HandlerFunc` | `octopus.go` — `POST /api/v1/octopus/cost`: fetch→aggregate→cost→discard; key via `X-Octopus-Key` header only; `Cache-Control: no-store` |
 | `meterFetcher` | interface over the octopus client | `octopus.go` — lets handler tests stub the upstream |
 | `octopusTariffHandler` | `func octopusTariffHandler(fetcher tariffFetcher, loc *time.Location) echo.HandlerFunc` | `octopus_tariff.go` — `POST /api/v1/octopus/tariff`: prefill a tariff from the account's current agreements; Agile collapses to average + warning |
+| `octopusCredential` | `func octopusCredential(c *echo.Context) (string, bool)` | `octopus.go` — resolves `X-Octopus-Token` (preferred, "Bearer "-prefixed) or `X-Octopus-Key` |
+| `oauthConfigHandler` | `func oauthConfigHandler(clientID string) echo.HandlerFunc` | `oauth.go` — `GET /api/v1/oauth/config`; reports enabled + client params |
+| `oauthTokenHandler` | `func oauthTokenHandler(exchanger tokenExchanger, clientID string) echo.HandlerFunc` | `oauth.go` — `POST /api/v1/oauth/token`; relays PKCE/refresh exchange verbatim; route registered only when `OCTOPUS_OAUTH_CLIENT_ID` set |
 
 Note: `otelecho` (the contrib package) targets Echo v4 and cannot be used here. `otelMiddleware` is the Echo v5 replacement.
 
@@ -178,6 +183,7 @@ All `fetch` calls live here. No raw `fetch` elsewhere.
 | `timezone.ts` | `localBucket`, `parseTimestamp`, `wallTimeToUtcMs`, `LONDON_TZ` | Intl-based tz conversion (no tz library); ambiguous autumn wall times → earlier instant |
 | `profile.ts` | `buildProfile`, `detectGranularityMinutes` | TS twin of `costing.BuildProfile`; fixture-verified |
 | `csv.ts` | `parseCsv`, `presets`, `detectPreset`, `ColumnMapping` | papaparse wrapper; Octopus/n3rgy presets + generic mapper |
+| `oauth.ts` | `buildAuthorizeRedirect`, `consumeCallback`, `codeChallengeS256`, `redirectUri`, `OAUTH_CALLBACK_PATH` | PKCE flow helpers; verifier/state in sessionStorage for the redirect round-trip only; access token held in memory |
 | `tariffStore.ts` | `loadTariffs`, `saveTariffs`, `migrate`, `starterPresets`, `clearTariffs` | localStorage, versioned schema key `ukeb.tariffs` |
 | `datasetStore.ts` | `saveDataset`, `listDatasets`, `loadDataset`, `deleteDataset`, `clearDatasets` | IndexedDB (`idb`), raw readings stay on-device |
 | `echarts.ts` | `VChart`, `BUCKET_LABELS`, `pounds` | Modular ECharts registration — import VChart only from here |

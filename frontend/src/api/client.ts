@@ -1,3 +1,4 @@
+import type { OAuthConfig, TokenResponse } from '../lib/oauth'
 import type {
   CostResponse,
   OctopusCostRequest,
@@ -6,6 +7,17 @@ import type {
   Profile,
   Tariff,
 } from '../lib/types'
+
+/**
+ * Per-request Octopus credential: an API key or an OAuth access token. The
+ * proxy endpoints accept either; the value travels in a header for this one
+ * request and is never persisted server-side.
+ */
+export type OctopusAuth = { kind: 'key'; value: string } | { kind: 'token'; value: string }
+
+function octopusAuthHeader(auth: OctopusAuth): Record<string, string> {
+  return auth.kind === 'token' ? { 'X-Octopus-Token': auth.value } : { 'X-Octopus-Key': auth.value }
+}
 
 const base = import.meta.env.VITE_API_URL ?? ''
 
@@ -81,10 +93,10 @@ const OCTOPUS_TIMEOUT_MS = 95_000
  */
 export function postOctopusCost(
   req: OctopusCostRequest,
-  apiKey: string,
+  auth: OctopusAuth,
 ): Promise<OctopusCostResponse> {
   return postJson<OctopusCostResponse>('/api/v1/octopus/cost', req, {
-    headers: { 'X-Octopus-Key': apiKey },
+    headers: octopusAuthHeader(auth),
     timeoutMs: OCTOPUS_TIMEOUT_MS,
   })
 }
@@ -94,15 +106,34 @@ export function postOctopusCost(
  * tariff in the app's model, built from the rates Octopus publishes for the
  * account's live agreements.
  */
-export function postOctopusTariff(account: string, apiKey: string): Promise<OctopusTariffResponse> {
+export function postOctopusTariff(
+  account: string,
+  auth: OctopusAuth,
+): Promise<OctopusTariffResponse> {
   return postJson<OctopusTariffResponse>(
     '/api/v1/octopus/tariff',
     { account },
     {
-      headers: { 'X-Octopus-Key': apiKey },
+      headers: octopusAuthHeader(auth),
       timeoutMs: OCTOPUS_TIMEOUT_MS,
     },
   )
+}
+
+/** Whether the Octopus OAuth connect flow is configured server-side. */
+export function getOAuthConfig(): Promise<OAuthConfig> {
+  return request<OAuthConfig>('/api/v1/oauth/config')
+}
+
+/** Exchange a PKCE authorization code for tokens via the backend relay. */
+export function postOAuthToken(body: {
+  grant_type: 'authorization_code' | 'refresh_token'
+  code?: string
+  code_verifier?: string
+  redirect_uri?: string
+  refresh_token?: string
+}): Promise<TokenResponse> {
+  return postJson<TokenResponse>('/api/v1/oauth/token', body)
 }
 
 export interface HealthResponse {

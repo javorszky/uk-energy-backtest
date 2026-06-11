@@ -26,7 +26,10 @@ import (
 //
 // Not parallel: it swaps the global tracer provider and default logger.
 func TestOctopusKeyNeverReachesLogsOrSpans(t *testing.T) {
-	const secretKey = "sk_live_supersecret_2f9c"
+	const (
+		secretKey   = "sk_live_supersecret_2f9c"
+		secretToken = "eyJhbGciOi_supersecret_token_91xq"
+	)
 
 	// Capture spans.
 	exporter := tracetest.NewInMemoryExporter()
@@ -52,6 +55,7 @@ func TestOctopusKeyNeverReachesLogsOrSpans(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/octopus/cost", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Octopus-Key", secretKey)
+	req.Header.Set("X-Octopus-Token", secretToken)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	require.NoError(t, tp.ForceFlush(t.Context()))
@@ -60,12 +64,12 @@ func TestOctopusKeyNeverReachesLogsOrSpans(t *testing.T) {
 	require.NotEmpty(t, spans, "expected at least the server span")
 	rawSpans, err := json.Marshal(spans)
 	require.NoError(t, err)
-	assert.NotContains(t, string(rawSpans), secretKey, "octopus key leaked into a span")
-
-	assert.NotContains(t, logBuf.String(), secretKey, "octopus key leaked into a log line")
-
-	// The key must also never be echoed back in the response.
-	assert.NotContains(t, rec.Body.String(), secretKey, "octopus key leaked into the response body")
+	for name, secret := range map[string]string{"key": secretKey, "token": secretToken} {
+		assert.NotContains(t, string(rawSpans), secret, "octopus %s leaked into a span", name)
+		assert.NotContains(t, logBuf.String(), secret, "octopus %s leaked into a log line", name)
+		// Neither credential may be echoed back in the response.
+		assert.NotContains(t, rec.Body.String(), secret, "octopus %s leaked into the response body", name)
+	}
 }
 
 // TestOctopusKeyNotAcceptedViaQuery documents that the key travels in the

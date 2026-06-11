@@ -3,9 +3,24 @@
   // the backend proxy), 2) define tariffs, 3) calculate and compare. The
   // privacy invariant lives here: only buildProfile() output or Octopus
   // connection details ever reach the API layer — raw readings do not.
-  import { computed, reactive, ref, watch } from 'vue'
+  import { computed, onMounted, reactive, ref, watch } from 'vue'
 
-  import { ApiError, postCost, postOctopusCost, postOctopusTariff } from './api/client'
+  import {
+    ApiError,
+    getOAuthConfig,
+    postCost,
+    postOAuthToken,
+    postOctopusCost,
+    postOctopusTariff,
+    type OctopusAuth,
+  } from './api/client'
+  import {
+    buildAuthorizeRedirect,
+    consumeCallback,
+    redirectUri,
+    OAUTH_CALLBACK_PATH,
+    type OAuthConfig,
+  } from './lib/oauth'
   import { buildProfile } from './lib/profile'
   import { loadTariffs, presetTariffs, saveTariffs } from './lib/tariffStore'
   import { LONDON_TZ } from './lib/timezone'
@@ -83,6 +98,61 @@
     tariffsVersion.value++
   }
 
+  // --- Octopus OAuth (enabled only when the server has a client id) ---
+  const oauthConfig = ref<OAuthConfig>({ enabled: false })
+  // Access token lives in memory only; a page reload means reconnecting.
+  const oauthToken = ref('')
+
+  onMounted(async () => {
+    try {
+      oauthConfig.value = await getOAuthConfig()
+    } catch {
+      // Backend unreachable — the health story is told elsewhere; OAuth
+      // simply stays hidden.
+    }
+    if (window.location.pathname === OAUTH_CALLBACK_PATH) {
+      await completeOAuthCallback()
+    }
+  })
+
+  async function startOAuthConnect(): Promise<void> {
+    errorMessage.value = ''
+    try {
+      window.location.assign(await buildAuthorizeRedirect(oauthConfig.value))
+    } catch (err) {
+      errorMessage.value = err instanceof Error ? err.message : String(err)
+    }
+  }
+
+  async function completeOAuthCallback(): Promise<void> {
+    const params = consumeCallback(new URLSearchParams(window.location.search))
+    // Clean the URL either way so a reload doesn't replay the callback.
+    window.history.replaceState(null, '', '/')
+    if (!params) {
+      errorMessage.value = 'Octopus sign-in failed: invalid or expired callback. Please try again.'
+      return
+    }
+    try {
+      const tokens = await postOAuthToken({
+        grant_type: 'authorization_code',
+        code: params.code,
+        code_verifier: params.codeVerifier,
+        redirect_uri: redirectUri(),
+      })
+      oauthToken.value = tokens.access_token
+    } catch (err) {
+      errorMessage.value =
+        err instanceof ApiError ? err.message : 'Octopus sign-in failed during token exchange.'
+    }
+  }
+
+  /** Token wins over a pasted key when both exist. */
+  function octopusAuth(apiKey: string): OctopusAuth {
+    return oauthToken.value
+      ? { kind: 'token', value: oauthToken.value }
+      : { kind: 'key', value: apiKey }
+  }
+
   // --- calculation ---
   const profile = ref<Profile | null>(null)
   const results = ref<CostResult[] | null>(null)
@@ -118,7 +188,7 @@
     errorMessage.value = ''
     busy.value = true
     try {
-      const resp = await postOctopusTariff(details.account, details.apiKey)
+      const resp = await postOctopusTariff(details.account, octopusAuth(details.apiKey))
       tariffs.value.push(resp.tariff)
       tariffsVersion.value++
       dataWarnings.value = resp.warnings
@@ -148,7 +218,7 @@
           gas_unit: details.gasUnit,
           tariffs: tariffs.value,
         },
-        details.apiKey,
+        octopusAuth(details.apiKey),
       )
       profile.value = resp.profile
       results.value = resp.results
@@ -221,8 +291,12 @@
           <div class="mt-4">
             <OctopusConnect
               :busy="busy"
+              :oauth-enabled="oauthConfig.enabled"
+              :oauth-connected="oauthToken !== ''"
               @submit="calculateFromOctopus"
               @prefill="prefillTariffFromOctopus"
+              @connect-octopus="startOAuthConnect"
+              @disconnect="oauthToken = ''"
             />
           </div>
         </details>

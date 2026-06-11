@@ -16,9 +16,17 @@
       },
     ]
     prefill: [details: { apiKey: string; account: string }]
+    connectOctopus: []
+    disconnect: []
   }>()
 
-  defineProps<{ busy: boolean }>()
+  const props = defineProps<{
+    busy: boolean
+    /** Whether the server has an OAuth client configured. */
+    oauthEnabled: boolean
+    /** True when the user completed the OAuth connect flow. */
+    oauthConnected: boolean
+  }>()
 
   const KEY_STORAGE = 'ukeb.octopus.key'
 
@@ -63,7 +71,7 @@
   }
 
   function submit(): void {
-    if (rememberKey.value && cleanKey()) {
+    if (!props.oauthConnected && rememberKey.value && cleanKey()) {
       localStorage.setItem(KEY_STORAGE, cleanKey())
     }
     emit('submit', {
@@ -79,19 +87,41 @@
 <template>
   <form class="space-y-3" @submit.prevent="submit">
     <p class="text-sm text-gray-500">
-      Your key is sent to this app's backend once per calculation, used to fetch your usage from
-      Octopus, and immediately discarded — it is never stored or logged server-side.
+      Your credentials are sent to this app's backend once per calculation, used to fetch your usage
+      from Octopus, and immediately discarded — they are never stored or logged server-side.
     </p>
 
+    <div v-if="oauthEnabled" class="flex items-center gap-3">
+      <button
+        v-if="!oauthConnected"
+        type="button"
+        :disabled="busy"
+        class="rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50"
+        @click="emit('connectOctopus')"
+      >
+        Connect with Octopus (no API key needed)
+      </button>
+      <template v-else>
+        <span class="text-sm text-emerald-700" role="status">Connected to Octopus ✓</span>
+        <button
+          type="button"
+          class="text-sm text-gray-500 hover:text-gray-700 underline"
+          @click="emit('disconnect')"
+        >
+          Disconnect
+        </button>
+      </template>
+    </div>
+
     <div class="grid sm:grid-cols-2 gap-3">
-      <div>
+      <div v-if="!oauthConnected">
         <label for="octo-key" class="block text-sm font-medium text-gray-700">
           Octopus API key
           <input
             id="octo-key"
             v-model="apiKey"
             type="password"
-            required
+            :required="!oauthConnected"
             autocomplete="off"
             placeholder="sk_live_…"
             class="mt-1 w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm font-mono"
@@ -150,7 +180,7 @@
       </div>
     </div>
 
-    <div class="flex items-start gap-2">
+    <div v-if="!oauthConnected" class="flex items-start gap-2">
       <label for="octo-remember" class="flex items-start gap-2 text-sm text-gray-600">
         <input
           id="octo-remember"
@@ -179,7 +209,7 @@
       </button>
       <button
         type="button"
-        :disabled="busy || !apiKey.trim() || !account.trim()"
+        :disabled="busy || (!oauthConnected && !apiKey.trim()) || !account.trim()"
         class="rounded-lg border border-indigo-300 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-40"
         @click="prefill"
       >

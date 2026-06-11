@@ -31,6 +31,23 @@ const (
 	dateLayout = "2006-01-02"
 )
 
+// missingCredentialMsg explains both accepted auth headers.
+const missingCredentialMsg = "provide your Octopus API key in the " + octopusKeyHeader +
+	" header, or an OAuth access token in the " + octopusTokenHeader + " header"
+
+// octopusCredential resolves the per-request upstream credential: an OAuth
+// access token (preferred, "Bearer "-prefixed for the client) or a raw API
+// key. Whitespace is trimmed because both arrive via copy-paste paths.
+func octopusCredential(c *echo.Context) (string, bool) {
+	if token := strings.TrimSpace(c.Request().Header.Get(octopusTokenHeader)); token != "" {
+		return "Bearer " + token, true
+	}
+	if key := strings.TrimSpace(c.Request().Header.Get(octopusKeyHeader)); key != "" {
+		return key, true
+	}
+	return "", false
+}
+
 // meterFetcher abstracts the Octopus client so handler tests can stub the
 // upstream without a network.
 type meterFetcher interface {
@@ -64,13 +81,9 @@ func octopusCostHandler(fetcher meterFetcher, loc *time.Location) echo.HandlerFu
 		// the (personal) consumption-derived response.
 		c.Response().Header().Set("Cache-Control", "no-store")
 
-		// Trim whitespace: a key pasted with a trailing newline or space would
-		// otherwise corrupt the upstream Basic auth and surface as a
-		// confusing 401 from Octopus.
-		apiKey := strings.TrimSpace(c.Request().Header.Get(octopusKeyHeader))
-		if apiKey == "" {
-			return jsonError(c, http.StatusUnauthorized, codeMissingKey,
-				fmt.Sprintf("provide your Octopus API key in the %s header", octopusKeyHeader))
+		apiKey, ok := octopusCredential(c)
+		if !ok {
+			return jsonError(c, http.StatusUnauthorized, codeMissingKey, missingCredentialMsg)
 		}
 
 		var req octopusCostRequest

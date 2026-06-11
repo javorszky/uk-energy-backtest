@@ -104,6 +104,12 @@ fly deploy
 
 Health checks hit `GET /api/v1/health`. With no `OTEL_EXPORTER_OTLP_ENDPOINT` set, telemetry goes to stdout and shows up in `fly logs`.
 
+**Optional — Octopus OAuth connect:** once Octopus grants an OAuth application (email agile@octopus.energy), set the public client id and the "Connect with Octopus" flow appears in the UI; unset, the app offers API-key entry only:
+
+```bash
+fly secrets set OCTOPUS_OAUTH_CLIENT_ID=<your-client-id>
+```
+
 ---
 
 ## Architecture

@@ -89,6 +89,14 @@ func New(cfg config.Config, gitSHA, buildTime string) *Server {
 	v1.POST("/octopus/cost", octopusCostHandler(octoClient, london))
 	v1.POST("/octopus/tariff", octopusTariffHandler(octoClient, london))
 
+	// The Octopus OAuth connect flow is gated on a client id being
+	// configured; without one the config endpoint reports disabled and the
+	// token exchange endpoint does not exist.
+	v1.GET("/oauth/config", oauthConfigHandler(cfg.OctopusOAuthClientID))
+	if cfg.OctopusOAuthClientID != "" {
+		v1.POST("/oauth/token", oauthTokenHandler(octopus.NewOAuthClient(octopusRequestTimeout), cfg.OctopusOAuthClientID))
+	}
+
 	registerStatic(e)
 
 	return &Server{echo: e, addr: fmt.Sprintf(":%d", cfg.Port)}

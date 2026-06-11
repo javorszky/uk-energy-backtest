@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/javorszky/uk-energy-backtest/internal/costing"
@@ -242,15 +243,21 @@ func (c *Client) consumptionURL(pointID, serial string, gas bool) (string, error
 }
 
 // getJSON performs an authenticated GET and decodes the JSON body into out.
-// Octopus auth is HTTP Basic with the API key as username and an empty
-// password. The key lives only in the Authorization header of the outbound
-// request — it must never appear in URLs or error messages.
-func (c *Client) getJSON(ctx context.Context, apiKey, rawURL string, out any) error {
+// The credential is either an API key (HTTP Basic, key as username, empty
+// password) or — when prefixed "Bearer " by the caller — an OAuth access
+// token sent as a bearer Authorization header. Either way it lives only in
+// the Authorization header of the outbound request and must never appear in
+// URLs or error messages.
+func (c *Client) getJSON(ctx context.Context, credential, rawURL string, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("build request: %w", err)
 	}
-	req.SetBasicAuth(apiKey, "")
+	if strings.HasPrefix(credential, "Bearer ") {
+		req.Header.Set("Authorization", credential)
+	} else {
+		req.SetBasicAuth(credential, "")
+	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {

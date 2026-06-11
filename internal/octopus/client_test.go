@@ -211,3 +211,22 @@ func TestUpstreamErrorIsWrappedWithoutKey(t *testing.T) {
 		t.Errorf("error %q leaks the API key", err)
 	}
 }
+
+func TestBearerCredentialUsesAuthorizationHeader(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer tok123" {
+			t.Errorf("Authorization = %q, want bearer token passthrough", got)
+		}
+		fmt.Fprint(w, `{"properties": [{"electricity_meter_points": [
+			{"mpan": "1111", "is_export": false, "meters": [{"serial_number": "I1"}]}
+		]}]}`)
+	}))
+	defer srv.Close()
+
+	c := newClientWithBase(srv.URL)
+	if _, err := c.DiscoverMeters(t.Context(), "Bearer tok123", "A-1"); err != nil {
+		t.Fatalf("DiscoverMeters: %v", err)
+	}
+}

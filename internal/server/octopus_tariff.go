@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v5"
@@ -51,10 +50,9 @@ func octopusTariffHandler(fetcher tariffFetcher, loc *time.Location) echo.Handle
 	return func(c *echo.Context) error {
 		c.Response().Header().Set("Cache-Control", "no-store")
 
-		apiKey := strings.TrimSpace(c.Request().Header.Get(octopusKeyHeader))
-		if apiKey == "" {
-			return jsonError(c, http.StatusUnauthorized, codeMissingKey,
-				fmt.Sprintf("provide your Octopus API key in the %s header", octopusKeyHeader))
+		apiKey, ok := octopusCredential(c)
+		if !ok {
+			return jsonError(c, http.StatusUnauthorized, codeMissingKey, missingCredentialMsg)
 		}
 
 		var req octopusTariffRequest

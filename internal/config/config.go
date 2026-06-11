@@ -13,14 +13,15 @@ import (
 // Config holds all runtime configuration for the application, parsed from
 // environment variables at startup. Add new fields here as the app grows.
 type Config struct {
-	Domain             string        `env:"DOMAIN"                        envDefault:"localhost"`
-	FrontendOrigin     string        `env:"FRONTEND_ORIGIN"`
-	OTelEndpoint       string        `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
-	OTelTransport      string        `env:"OTEL_EXPORTER_OTLP_PROTOCOL"   envDefault:"grpc"`
-	ServiceName        string        `env:"OTEL_SERVICE_NAME"             envDefault:"uk-energy-backtest"`
-	OTelExportInterval time.Duration `env:"OTEL_METRIC_EXPORT_INTERVAL"   envDefault:"15s"`
-	OTelSamplingRatio  float64       `env:"OTEL_SAMPLING_RATIO"           envDefault:"1.0"`
-	Port               int           `env:"PORT"                          envDefault:"8080"`
+	Domain               string        `env:"DOMAIN"                        envDefault:"localhost"`
+	FrontendOrigin       string        `env:"FRONTEND_ORIGIN"`
+	OTelEndpoint         string        `env:"OTEL_EXPORTER_OTLP_ENDPOINT"`
+	OTelTransport        string        `env:"OTEL_EXPORTER_OTLP_PROTOCOL"   envDefault:"grpc"`
+	ServiceName          string        `env:"OTEL_SERVICE_NAME"             envDefault:"uk-energy-backtest"`
+	OctopusOAuthClientID string        `env:"OCTOPUS_OAUTH_CLIENT_ID"`
+	OTelExportInterval   time.Duration `env:"OTEL_METRIC_EXPORT_INTERVAL"   envDefault:"15s"`
+	OTelSamplingRatio    float64       `env:"OTEL_SAMPLING_RATIO"           envDefault:"1.0"`
+	Port                 int           `env:"PORT"                          envDefault:"8080"`
 }
 
 // Load parses the process environment into Config. Call once at startup and

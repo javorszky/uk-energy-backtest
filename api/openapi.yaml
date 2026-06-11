@@ -92,8 +92,18 @@ paths:
       parameters:
         - name: X-Octopus-Key
           in: header
-          required: true
-          description: Octopus API key, used per-request and discarded
+          required: false
+          description: >
+            Octopus API key, used per-request and discarded. Either this or
+            X-Octopus-Token must be present.
+          schema:
+            type: string
+        - name: X-Octopus-Token
+          in: header
+          required: false
+          description: >
+            OAuth access token (alternative to the API key); forwarded as a
+            Bearer credential and discarded.
           schema:
             type: string
       requestBody:
@@ -179,8 +189,18 @@ paths:
       parameters:
         - name: X-Octopus-Key
           in: header
-          required: true
-          description: Octopus API key, used per-request and discarded
+          required: false
+          description: >
+            Octopus API key, used per-request and discarded. Either this or
+            X-Octopus-Token must be present.
+          schema:
+            type: string
+        - name: X-Octopus-Token
+          in: header
+          required: false
+          description: >
+            OAuth access token (alternative to the API key); forwarded as a
+            Bearer credential and discarded.
           schema:
             type: string
       requestBody:
@@ -230,6 +250,91 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '502':
           description: Upstream Octopus API call failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /oauth/config:
+    get:
+      operationId: getOAuthConfig
+      summary: Octopus OAuth availability and client parameters
+      description: >
+        Reports whether the OAuth connect flow is configured
+        (OCTOPUS_OAUTH_CLIENT_ID set server-side) and, if so, the public
+        client id, authorize URL, and scopes the SPA should request.
+      responses:
+        '200':
+          description: OAuth configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enabled]
+                properties:
+                  enabled:
+                    type: boolean
+                  client_id:
+                    type: string
+                  authorize_url:
+                    type: string
+                    example: https://auth.octopus.energy/authorize/
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+
+  /oauth/token:
+    post:
+      operationId: postOAuthToken
+      summary: Relay a PKCE token exchange to auth.octopus.energy
+      description: >
+        Forwards an authorization_code (PKCE) or refresh_token grant to the
+        Octopus auth server with the configured public client id, and relays
+        the auth server's JSON response and status verbatim. Nothing is
+        stored server-side. This route exists only when
+        OCTOPUS_OAUTH_CLIENT_ID is configured; otherwise it is 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grant_type]
+              properties:
+                grant_type:
+                  type: string
+                  enum: [authorization_code, refresh_token]
+                code:
+                  type: string
+                code_verifier:
+                  type: string
+                redirect_uri:
+                  type: string
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token response from the auth server, relayed verbatim
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                  expires_in:
+                    type: integer
+                  refresh_token:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          description: Auth server unreachable
           content:
             application/json:
               schema:

@@ -181,3 +181,34 @@ func TestOctopusCostNoGasMeterWithM3Unit(t *testing.T) {
 	assert.Zero(t, resp.Profile.GasKWh)
 	assert.Nil(t, resp.Profile.ExportHH)
 }
+
+// recordingFetcher captures the credential the handler resolved.
+type recordingFetcher struct {
+	stubFetcher
+	gotCredential string
+}
+
+func (r *recordingFetcher) DiscoverMeters(ctx context.Context, apiKey, account string) (octopus.MeterPoints, error) {
+	r.gotCredential = apiKey
+	return r.stubFetcher.DiscoverMeters(ctx, apiKey, account)
+}
+
+func TestOctopusCostAcceptsOAuthToken(t *testing.T) {
+	fetcher := &recordingFetcher{stubFetcher: stubFetcher{
+		meters: octopus.MeterPoints{ImportMPAN: "1111", ImportSerial: "I1"},
+		consumption: map[string][]costing.Reading{
+			"1111": {{IntervalStart: time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC), Consumption: 1.0}},
+		},
+	}}
+	h := octopusTestHandler(t, fetcher)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/octopus/cost", strings.NewReader(validOctopusBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(octopusTokenHeader, " tok123 ")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "Bearer tok123", fetcher.gotCredential,
+		"token must reach the client bearer-prefixed and trimmed")
+}
