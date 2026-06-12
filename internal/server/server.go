@@ -25,6 +25,9 @@ const (
 	// upstream Octopus calls; the handler separately bounds the whole
 	// pipeline at octopusTimeout.
 	octopusRequestTimeout = 30 * time.Second
+	// gzipMinLength skips compressing responses smaller than this — the
+	// gzip header/dictionary overhead isn't worth it below ~1 KB.
+	gzipMinLength = 1024
 )
 
 // Server wraps the Echo instance and the address it will listen on.
@@ -67,6 +70,11 @@ func New(cfg config.Config, gitSHA, buildTime string) *Server {
 	}))
 
 	e.Use(middleware.BodyLimit(bodyLimitBytes))
+
+	// Gzip responses when the client accepts it: the raw-usage relay is a
+	// few MB of JSON per year of readings (compresses ~10×), and the
+	// embedded SPA bundle benefits too. Tiny responses are left alone.
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{MinLength: gzipMinLength}))
 
 	// CORS is only needed in decoupled deployments where the frontend and
 	// backend run on different origins. In embedded mode they share an origin
