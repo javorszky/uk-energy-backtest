@@ -88,6 +88,7 @@ func New(cfg config.Config, gitSHA, buildTime string) *Server {
 	v1.POST("/cost", costHandler)
 	octoClient := octopus.NewClient(octopusRequestTimeout)
 	v1.POST("/octopus/cost", octopusCostHandler(octoClient, london))
+	v1.POST("/octopus/usage", octopusUsageHandler(octoClient))
 	v1.POST("/octopus/tariff", octopusTariffHandler(octoClient, london))
 	// The historical-rates relay sits behind an in-memory partial-coverage
 	// cache: repeated or overlapping backtests only fetch the spans Octopus

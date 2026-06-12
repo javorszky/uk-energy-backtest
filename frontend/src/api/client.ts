@@ -2,9 +2,8 @@ import type { RateSlot } from '../lib/agile'
 import type { OAuthConfig, TokenResponse } from '../lib/oauth'
 import type {
   CostResponse,
-  OctopusCostRequest,
-  OctopusCostResponse,
   OctopusTariffResponse,
+  OctopusUsageResponse,
   Profile,
   Tariff,
 } from '../lib/types'
@@ -88,15 +87,16 @@ export function postCost(profile: Profile, tariffs: Tariff[]): Promise<CostRespo
 const OCTOPUS_TIMEOUT_MS = 95_000
 
 /**
- * Fetch-aggregate-cost via the backend Octopus proxy. The API key travels in
- * the X-Octopus-Key header for this one request and is never persisted by
- * the server.
+ * Fetch the account's raw half-hourly readings via the backend relay. The
+ * server stores nothing — the data comes straight back to its owner so the
+ * on-device pipeline (profile build, Agile backtest, dataset save) treats it
+ * exactly like a CSV import.
  */
-export function postOctopusCost(
-  req: OctopusCostRequest,
+export function postOctopusUsage(
+  req: { account: string; period_from: string; period_to: string },
   auth: OctopusAuth,
-): Promise<OctopusCostResponse> {
-  return postJson<OctopusCostResponse>('/api/v1/octopus/cost', req, {
+): Promise<OctopusUsageResponse> {
+  return postJson<OctopusUsageResponse>('/api/v1/octopus/usage', req, {
     headers: octopusAuthHeader(auth),
     timeoutMs: OCTOPUS_TIMEOUT_MS,
   })

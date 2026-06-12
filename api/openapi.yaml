@@ -175,6 +175,87 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /octopus/usage:
+    post:
+      operationId: postOctopusUsage
+      summary: Relay the account's raw half-hourly readings to their owner
+      description: >
+        Fetches the account's import/export/gas half-hourly consumption from
+        Octopus and returns it to the requesting browser, so the on-device
+        pipeline (profile build, Agile backtest, dataset save) can treat the
+        Octopus path exactly like a CSV import. Nothing is stored
+        server-side; readings and credential are discarded with the request.
+        Responses carry Cache-Control no-store.
+      parameters:
+        - name: X-Octopus-Key
+          in: header
+          required: false
+          description: >
+            Octopus API key, used per-request and discarded. Either this or
+            X-Octopus-Token must be present.
+          schema:
+            type: string
+        - name: X-Octopus-Token
+          in: header
+          required: false
+          description: OAuth access token (alternative to the API key)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account, period_from, period_to]
+              properties:
+                account:
+                  type: string
+                  example: A-1234ABCD
+                period_from:
+                  type: string
+                  format: date
+                period_to:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Raw readings per stream; export/gas omitted when absent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [import]
+                properties:
+                  import:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WireReading'
+                  export:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WireReading'
+                  gas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WireReading'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Missing credential header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream Octopus API call failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /octopus/tariff:
     post:
       operationId: postOctopusTariff
@@ -557,6 +638,19 @@ components:
             rate:
               type: number
               description: Flat pence per kWh
+
+    WireReading:
+      type: object
+      description: One metered half-hour
+      required: [ts, value]
+      properties:
+        ts:
+          type: integer
+          format: int64
+          description: Interval start, UTC epoch milliseconds
+        value:
+          type: number
+          description: Consumption for the period (kWh, or m³ for SMETS2 gas)
 
     CostResult:
       type: object

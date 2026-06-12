@@ -10,8 +10,8 @@
     getOAuthConfig,
     postCost,
     postOAuthToken,
-    postOctopusCost,
     postOctopusTariff,
+    postOctopusUsage,
     type OctopusAuth,
   } from './api/client'
   import {
@@ -211,19 +211,32 @@
     errorMessage.value = ''
     busy.value = true
     try {
-      const resp = await postOctopusCost(
+      // Fetch the raw readings to this device, then run the exact same
+      // on-device pipeline as the CSV path — so the Agile backtest and
+      // dataset saving work identically for both ingest routes.
+      const usage = await postOctopusUsage(
         {
           account: details.account,
           period_from: details.periodFrom,
           period_to: details.periodTo,
-          gas_unit: details.gasUnit,
-          tariffs: tariffs.value,
         },
         octopusAuth(details.apiKey),
       )
-      profile.value = resp.profile
+      streams.import = usage.import
+      streams.export = usage.export
+      streams.gas = usage.gas
+      gasUnit.value = details.gasUnit
+
+      const built = buildProfile({
+        importReadings: usage.import,
+        exportReadings: usage.export,
+        gasReadings: usage.gas,
+        gasUnit: details.gasUnit,
+      })
+      dataWarnings.value = built.warnings
+      const resp = await postCost(built.profile, tariffs.value)
+      profile.value = built.profile
       results.value = resp.results
-      dataWarnings.value = []
     } catch (err) {
       errorMessage.value =
         err instanceof ApiError ? err.message : 'Octopus fetch failed — is the backend running?'

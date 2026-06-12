@@ -70,18 +70,16 @@ export interface CostResponse {
   results: CostResult[]
 }
 
-export interface OctopusCostRequest {
-  account: string
-  period_from: string
-  period_to: string
-  gas_unit?: 'kwh' | 'm3'
-  calorific_value?: number
-  tariffs: Tariff[]
-}
-
-export interface OctopusCostResponse {
-  profile: Profile
-  results: CostResult[]
+/**
+ * Response of POST /api/v1/octopus/usage — the account's raw half-hourly
+ * readings, relayed to their owner so the browser can run the same
+ * on-device pipeline as the CSV path (profile build, Agile backtest,
+ * dataset save). ts is UTC epoch milliseconds.
+ */
+export interface OctopusUsageResponse {
+  import: RawReading[]
+  export?: RawReading[]
+  gas?: RawReading[]
 }
 
 /** Response of POST /api/v1/octopus/tariff — a prefilled tariff from the

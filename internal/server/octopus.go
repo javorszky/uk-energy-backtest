@@ -171,28 +171,9 @@ func fetchAndAggregate(
 	from, to time.Time,
 	loc *time.Location,
 ) (costing.Profile, error) {
-	mp, err := fetcher.DiscoverMeters(ctx, apiKey, req.Account)
+	imp, exp, gas, err := fetchStreams(ctx, fetcher, apiKey, req.Account, from, to)
 	if err != nil {
-		return costing.Profile{}, fmt.Errorf("discover meters: %w", err)
-	}
-
-	imp, err := fetcher.Consumption(ctx, apiKey, mp.ImportMPAN, mp.ImportSerial, from, to, false)
-	if err != nil {
-		return costing.Profile{}, fmt.Errorf("fetch import consumption: %w", err)
-	}
-
-	var exp []costing.Reading
-	if mp.ExportMPAN != "" {
-		if exp, err = fetcher.Consumption(ctx, apiKey, mp.ExportMPAN, mp.ExportSerial, from, to, false); err != nil {
-			return costing.Profile{}, fmt.Errorf("fetch export consumption: %w", err)
-		}
-	}
-
-	var gas []costing.Reading
-	if mp.GasMPRN != "" {
-		if gas, err = fetcher.Consumption(ctx, apiKey, mp.GasMPRN, mp.GasSerial, from, to, true); err != nil {
-			return costing.Profile{}, fmt.Errorf("fetch gas consumption: %w", err)
-		}
+		return costing.Profile{}, err
 	}
 
 	cv := req.CalorificValue

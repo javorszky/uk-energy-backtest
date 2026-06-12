@@ -133,6 +133,7 @@ Process-local by design — dies with the Fly machine on scale-to-zero, warms on
 | `profilePayload` | wire struct with slice buckets | `cost.go` — rejects non-48-bucket arrays (fixed arrays would silently truncate) |
 | `octopusCostHandler` | `func octopusCostHandler(fetcher meterFetcher, loc *time.Location) echo.HandlerFunc` | `octopus.go` — `POST /api/v1/octopus/cost`: fetch→aggregate→cost→discard; key via `X-Octopus-Key` header only; `Cache-Control: no-store` |
 | `meterFetcher` | interface over the octopus client | `octopus.go` — lets handler tests stub the upstream |
+| `octopusUsageHandler` | `func octopusUsageHandler(fetcher meterFetcher) echo.HandlerFunc` | `octopus_usage.go` — `POST /api/v1/octopus/usage`: relay raw half-hourly readings to their owner so the browser runs the same on-device pipeline as CSV (Agile backtest, dataset save); shares `fetchStreams` with the cost path |
 | `octopusTariffHandler` | `func octopusTariffHandler(fetcher tariffFetcher, loc *time.Location) echo.HandlerFunc` | `octopus_tariff.go` — `POST /api/v1/octopus/tariff`: prefill a tariff from the account's current agreements; Agile collapses to average + warning |
 | `octopusCredential` | `func octopusCredential(c *echo.Context) (string, bool)` | `octopus.go` — resolves `X-Octopus-Token` (preferred, "Bearer "-prefixed) or `X-Octopus-Key` |
 | `oauthConfigHandler` | `func oauthConfigHandler(clientID string) echo.HandlerFunc` | `oauth.go` — `GET /api/v1/oauth/config`; reports enabled + client params |
@@ -183,7 +184,7 @@ All `fetch` calls live here. No raw `fetch` elsewhere.
 | `getStatus` | `function getStatus(): Promise<StatusResponse>` | `GET /api/v1/status` |
 | `ApiError` | `class extends Error { status: number; code: string }` | Carries the server error envelope |
 | `postCost` | `function postCost(profile: Profile, tariffs: Tariff[]): Promise<CostResponse>` | `POST /api/v1/cost` — deliberately only accepts a Profile, never raw rows |
-| `postOctopusCost` | `function postOctopusCost(req: OctopusCostRequest, apiKey: string): Promise<OctopusCostResponse>` | `POST /api/v1/octopus/cost`; key in `X-Octopus-Key` header; 95 s timeout |
+| `postOctopusUsage` | `function postOctopusUsage(req, auth: OctopusAuth): Promise<OctopusUsageResponse>` | `POST /api/v1/octopus/usage` — raw readings to the device; the frontend's Octopus path uses this + the local pipeline (`/octopus/cost` remains server-side for API consumers) |
 | `postOctopusTariff` | `function postOctopusTariff(account: string, apiKey: string): Promise<OctopusTariffResponse>` | `POST /api/v1/octopus/tariff` — prefill tariff from current agreements |
 
 **To add an API call:** add a function here, typed against the OpenAPI contract.
